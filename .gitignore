@@ -1,0 +1,30 @@
+# Variables de entorno y credenciales — NUNCA subir al repo
+.env
+.env.local
+.env.*.local
+
+# Logs del agente
+*.log
+logs/
+
+# Dependencias Node
+node_modules/
+
+# Caché y temporales del sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Caché de editores
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Caché de npm/npx
+.npm/
+.npx/
+
+# Archivos de test y depuración locales
+*.test.local
+debug/
