@@ -16,9 +16,33 @@ Genera y publica automáticamente un post completo en el blog Optim Games. El wo
 
 ## Pasos
 
+### Paso 0 — Determinar el tema del post (nuevo)
+
+Antes de hacer ninguna pregunta al usuario, evalúa si ya se ha proporcionado un juego o tema en el mensaje de invocación.
+
+**Si el usuario ya especificó un juego o tema:** continúa directamente al Paso 1 con esos datos. No consultes la memoria.
+
+**Si el usuario NO especificó ningún juego o tema:**
+1. Lee el archivo `memory/post-ideas.md`
+2. Localiza la primera entrada con estado `pendiente` (el número `#` más bajo)
+3. Usa ese prompt directamente como base para este post — juego, plataforma, tipo de post y enfoque ya están definidos
+4. Cambia el estado de esa entrada a `en uso` y actualiza la columna `Última actualización` con la fecha actual
+5. Informa al usuario brevemente antes de continuar:
+
+```
+📋 Usando idea de la cola:
+Juego: [nombre] | Tipo: [tipo] | Plataforma: [plataforma]
+Enfoque: [enfoque]
+```
+
+**Si la memoria está vacía o no existe:**
+- Continúa al Paso 1 y pregunta al usuario normalmente
+
+---
+
 ### Paso 1 — Recopilar información del post
 
-Pregunta al usuario lo siguiente. Si ya ha proporcionado alguno de estos datos en el mensaje de invocación, úsalos directamente sin volver a preguntar:
+Pregunta al usuario lo siguiente. Si ya ha proporcionado alguno de estos datos en el mensaje de invocación o desde el Paso 0, úsalos directamente sin volver a preguntar:
 
 **Preguntas obligatorias:**
 - ¿Sobre qué juego o tema es el post?
@@ -134,7 +158,27 @@ Usa la skill `publish-wordpress` para:
 
 ---
 
-### Paso 8 — Reporte final
+### Paso 8 — Actualizar la memoria (nuevo)
+
+Una vez confirmada la publicación en WordPress, actualiza `memory/post-ideas.md`:
+
+**Si el post venía de la memoria (Paso 0 lo cargó automáticamente):**
+1. Localiza la entrada correspondiente por nombre de juego y número `#`
+2. Cambia el estado de `en uso` a `publicado`
+3. Actualiza la columna `Última actualización` con la fecha actual
+4. Actualiza el contador del encabezado del archivo: resta 1 a `Pendientes`, suma 1 a `Publicados`
+
+**Si el post fue especificado directamente por el usuario:**
+- No es obligatorio añadirlo a la memoria
+- Si el agente considera que tiene valor para el historial (por ejemplo, para evitar cubrir el mismo juego en el futuro), puede añadirlo con estado `publicado` directamente
+
+**Si el usuario canceló en el Paso 6:**
+- Si la entrada estaba en estado `en uso`, revertirla a `pendiente`
+- Actualizar la columna `Última actualización`
+
+---
+
+### Paso 9 — Reporte final
 
 Una vez publicado, muestra al usuario:
 
@@ -147,6 +191,7 @@ Una vez publicado, muestra al usuario:
 🖼️ Imagen: [fuente] o ⚠️ pendiente
 🔍 SEO: keyword "[keyword]" configurada
 🕐 Publicado: [fecha y hora]
+💾 Memoria: entrada actualizada a `publicado`
 ─────────────────────────────
 ```
 

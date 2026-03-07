@@ -41,3 +41,14 @@ Plataforma: Super Nintendo
 Enfoque: El caos creativo detrás del desarrollo — cómo un equipo de lujo con agenda imposible acabó haciendo una obra maestra casi por accidente
 
 Sigue todos los pasos del workflow en orden: investiga primero, redacta después, prepara los metadatos SEO, busca imagen de portada en Wikimedia Commons y muéstrame el resumen de revisión antes de publicar.
+
+## generate-post-ideas
+
+Ejemplo de invocación con filtros:
+Ejecuta el workflow /generate-post-ideas con los siguientes filtros:
+Plataforma: Mega Drive
+Época: Años 90
+Tipo de post: Historia y curiosidades
+
+Ejemplo de invocación libre:
+Ejecuta el workflow /generate-post-ideas. Decide tú qué juegos son más interesantes.
