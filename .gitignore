@@ -2,6 +2,7 @@
 .env
 .env.local
 .env.*.local
+opencode.json
 
 # Logs del agente
 *.log

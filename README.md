@@ -27,3 +27,17 @@ En cuanto a las Skills, serán las capacidades concretas del agente. Por ahora n
 ## Fase 3 — Expansión a Redes Sociales
 
 Una vez que el flujo WordPress funcione bien, añadirás nuevas skills para cada red. Cada una tendrá sus propias reglas de adaptación del contenido, porque un post de blog de 800 palabras se convierte en un hilo de Twitter/X, un caption corto para Instagram y una publicación más elaborada para Facebook. El agente ya tendrá el contenido base generado, solo necesitará reformatearlo.
+
+
+# Uso de los WorkFlows
+
+## create-post
+
+Ejecuta el workflow /create-post con los siguientes datos:
+
+Juego: Chrono Trigger
+Tipo de post: Historia y curiosidades
+Plataforma: Super Nintendo
+Enfoque: El caos creativo detrás del desarrollo — cómo un equipo de lujo con agenda imposible acabó haciendo una obra maestra casi por accidente
+
+Sigue todos los pasos del workflow en orden: investiga primero, redacta después, prepara los metadatos SEO, busca imagen de portada en Wikimedia Commons y muéstrame el resumen de revisión antes de publicar.

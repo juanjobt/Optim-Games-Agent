@@ -65,17 +65,19 @@ https://opengameart.org/api/assets?field_art_type=Art&title=NOMBRE_DEL_JUEGO
 
 **1.3 Subir la imagen via MCP**
 
-Una vez localizada la imagen, usa la herramienta MCP:
+Una vez localizada la URL de la imagen, pásala **directamente** a la herramienta MCP. No descargues la imagen, no la conviertas a base64, no uses curl ni ningún paso intermedio. La herramienta gestiona la descarga internamente.
 
 ```
 wp_upload_media(
-  url: "url-de-la-imagen",
+  url: "https://url-completa-de-la-imagen.jpg",
   filename: "nombre-del-juego-portada.jpg",
   alt_text: "Portada de NOMBRE_DEL_JUEGO"
 )
 ```
 
-Guarda el `id` devuelto — lo necesitarás como `featured_media` al crear el post.
+> ⚠️ **Importante:** El parámetro `url` debe ser la URL pública original de la imagen, no un base64 ni una ruta local. Si pasas base64 u otro formato, la herramienta fallará silenciosamente y el post quedará sin imagen de portada.
+
+Si la herramienta devuelve un `id`, guárdalo — lo necesitarás como `featured_media` al crear el post. Si devuelve error, pasa al punto 1.4.
 
 **1.4 Si no se encuentra ninguna imagen**
 
