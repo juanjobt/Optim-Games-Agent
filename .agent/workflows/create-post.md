@@ -127,7 +127,7 @@ Muestra al usuario un resumen del post antes de publicar:
 
 ```
 📝 RESUMEN DEL POST
-─────────────────────────────
+──────────────────────────────────────
 Título: [título]
 Tipo: [tipo de post]
 Categoría: [categoría]
@@ -137,13 +137,26 @@ Meta descripción: [meta]
 Tags: [lista de tags]
 Imagen: [fuente y nombre] o ⚠️ Sin imagen
 Palabras: ~[número]
-─────────────────────────────
+──────────────────────────────────────
 ¿Publicamos? (sí / revisar / cancelar)
 ```
 
 Si el usuario responde **revisar**, pregunta qué quiere cambiar y vuelve al paso correspondiente.
 Si el usuario responde **cancelar**, detén el proceso y guarda el borrador localmente.
-Si el usuario responde **sí**, continúa al paso 7.
+Si el usuario responde **sí**, continúa al paso 6½.
+
+---
+
+### Paso 6½ — Leer skill publish-wordpress (OBLIGATORIO)
+
+**ANTES de continuar al Paso 7, DEBES:**
+
+1. Lee el archivo `.agent/skills/publish-wordpress/SKILL.md` completo
+2. Confirma mentalmente que entiendes el proceso de publicación
+3. **Regla de imagen:** Recuerda que la herramienta `wp_upload_media` acepta una URL directa, NO base64, NO curl, NO descargas locales
+4. Luego continúa al Paso 7
+
+> ⚠️ **Esta lectura es obligatoria.** No puedes saltarte este paso ni improvisar. Si no lees la skill, el post se publicará sin seguir el proceso correcto.
 
 ---
 

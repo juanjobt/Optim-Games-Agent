@@ -54,6 +54,21 @@ Ejecuta el workflow /generate-post-ideas. Decide tú qué juegos son más intere
 ### PASO 2 — Buscar candidatos
 **Acción:** Ejecutar el skill `search-game-candidates`
 
+---
+
+### PASO 2½ — Leer skill search-game-candidates (OBLIGATORIO)
+
+**ANTES de ejecutar el skill, DEBES:**
+
+1. Lee el archivo `.agent/skills/search-game-candidates/SKILL.md` completo
+2. Confirma mentalmente los criterios de calidad editorial
+3. Recuerda las fuentes de referencia (MobyGames, Wikipedia, GameFAQs, etc.)
+4. Luego ejecuta el skill pasando los filtros correctos
+
+> ⚠️ **Esta lectura es obligatoria.** No puedes ejecutar el skill sin haberlo leído antes.
+
+---
+
 Pasar al skill:
 - Los filtros recibidos del usuario (o ninguno si no se especificó nada)
 - La lista de exclusión del paso anterior
