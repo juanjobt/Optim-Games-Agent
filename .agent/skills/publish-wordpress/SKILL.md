@@ -1,6 +1,6 @@
 ---
 name: publish-wordpress
-description: Publica posts completos en el blog Optim Games usando las herramientas MCP de WordPress. Gestiona la búsqueda y subida de imágenes desde Wikimedia Commons, asigna categorías y tags correctos, rellena los campos SEO de Yoast y publica el post. Usar cuando se necesite publicar o actualizar contenido en WordPress.
+description: Publica posts completos en el blog Optim Games usando las herramientas MCP de WordPress. Gestiona la búsqueda de imágenes via RAWG API (fuente principal), Wikimedia Commons (fallback) y Hugging Face FLUX.1-dev (generación IA como último recurso), asigna categorías y tags, rellena campos SEO de Yoast y publica el post. Usar cuando se necesite publicar o actualizar contenido en WordPress.
 ---
 
 # Skill: Publicar en WordPress via MCP
@@ -12,11 +12,13 @@ Esta skill gestiona el proceso completo de publicación usando las herramientas 
 El archivo `.env` del proyecto debe contener:
 
 ```
-WP_BASE_URL=https://games.optim-byte.com
+WP_BASE_URL=https://games.optimbyte.com
 WP_MCP_JWT_TOKEN=tu-token-jwt-aqui
+RAWG_API_KEY=tu-rawg-api-key-aqui
+HF_TOKEN=tu-huggingface-token-aqui
 ```
 
-El token JWT se genera desde **Ajustes → WordPress MCP → Authentication Tokens** y tiene una duración máxima de 24 horas. Si expira, hay que regenerarlo.
+> **⚠️ IMPORTANTE:** Antes de usar CUALQUIER API externa (RAWG, Hugging Face, etc.), DEBES leer el archivo `.env` del proyecto para obtener los valores reales de las claves. NUNCA uses "demo", placeholders o valores inventados. Si no encuentras el valor, pregunta al usuario.
 
 ---
 
@@ -41,31 +43,102 @@ Sigue estos pasos en orden. Si alguno falla, detén el proceso y reporta el erro
 
 ### Paso 1 — Buscar y subir la imagen de portada
 
-**1.1 Buscar en Wikimedia Commons**
+**Orden de prioridad:**
+1. RAWG API (fuente principal - portadas oficiales)
+2. Wikipedia/Wikimedia Commons (fallback)
+3. Hugging Face FLUX.1-dev (generación IA como último recurso)
 
-Construye la query usando el nombre del juego y la plataforma:
+---
+
+#### 1.1 Buscar en RAWG API (RECOMENDADO)
+
+> **⚠️ IMPORTANTE:** Antes de hacer esta llamada, DEBES leer el archivo `.env` del proyecto y extraer el valor de `RAWG_API_KEY`. No continues sin haberlo hecho.
+
+Construye la query usando el nombre del juego y la key real del `.env`:
+
+```
+https://api.rawg.io/api/games?search=NOMBRE_DEL_JUEGO&key=744844ef430840ea86411672483d72a6
+```
+
+Respuesta esperada - extrae la imagen de `results[0].background_image`:
+
+```json
+{
+  "count": 1,
+  "results": [{
+    "name": "Chrono Trigger",
+    "background_image": "https://media.rawg.io/media/games/8d6/8d69f3598aff2f2db6f5f2d3c6d5a5a5.jpg",
+    "released": "1995-03-11",
+    "genres": [{"name": "RPG"}],
+    "platforms": [{"platform": {"name": "Super Nintendo"}}]
+  }]
+}
+```
+
+Criterios de selección:
+- Prioriza `background_image` (portada oficial)
+- Tamaño mínimo: 400px en el lado más corto
+- Si RAWG no devuelve resultados, pasa al punto 1.2
+
+---
+
+#### 1.2 Fallback a Wikimedia Commons
+
+Si RAWG no devuelve resultados válidos:
 
 ```
 https://en.wikipedia.org/w/api.php?action=query&titles=NOMBRE_DEL_JUEGO&prop=pageimages&format=json&pithumbsize=800
 ```
 
-Criterios de selección:
-- Prioriza imágenes de portada oficial del juego (cover art)
-- Tamaño mínimo aceptable: 400px en el lado más corto
-- Formatos aceptados: jpg, png, webp
-- Verifica que la licencia sea dominio público o Creative Commons libre de uso comercial
+Criterios:
+- Busca `query.pages[].thumbnail.source`
+- Verifica licencia Creative Commons
 
-**1.2 Fallback a OpenGameArt**
+---
 
-Si Wikimedia no devuelve resultados válidos:
+#### 1.3 Fallback final: Generación IA con Hugging Face
 
+> **⚠️ IMPORTANTE:** Antes de hacer esta llamada, DEBES leer el archivo `.env` del proyecto y extraer el valor de `HF_TOKEN`. No continues sin haberlo hecho.
+
+Si ninguna fuente haDevuelto imagen, usa Hugging Face Inference Providers para generar una imagen con FLUX.1-dev:
+
+**Opción A - Python (recomendado):**
+
+```python
+from huggingface_hub import InferenceClient
+import os
+
+client = InferenceClient(token=os.environ["HF_TOKEN"])
+
+image = client.text_to_image(
+    prompt=f"Video game box art cover for {nombre_juego}, {genero}, {año}, retro pixel art style, vibrant colors, professional game artwork",
+    model="black-forest-labs/FLUX.1-dev"
+)
+
+image.save(f"{slug}.jpg")
 ```
-https://opengameart.org/api/assets?field_art_type=Art&title=NOMBRE_DEL_JUEGO
+
+**Opción B - HTTP:**
+```
+POST https://router.huggingface.co/v1/images/generations
+Authorization: Bearer HF_TOKEN
+Content-Type: application/json
+
+{
+  "model": "black-forest-labs/FLUX.1-dev",
+  "inputs": "Video game box art cover for [NOMBRE_JUEGO], [GÉNERO], [AÑO], retro pixel art style"
+}
 ```
 
-**1.3 Subir la imagen via MCP**
+**Respuesta (HTTP):** La imagen se devuelve como binary blob. Guárdala localmente como `[slug].jpg` y luego úsala para subir a WordPress.
 
-Una vez localizada la URL de la imagen, pásala **directamente** a la herramienta MCP. No descargues la imagen, no la conviertas a base64, no uses curl ni ningún paso intermedio. La herramienta gestiona la descarga internamente.
+> ⚠️ **Importante:** Este paso solo debe usarse como último recurso cuando NO se haya encontrado ninguna imagen en RAWG ni Wikimedia.
+
+---
+
+#### 1.4 Subir la imagen via MCP
+
+Una vez localizada la URL de la imagen (o generada localmente), súbela a WordPress:
 
 ```
 wp_upload_media(
@@ -75,13 +148,13 @@ wp_upload_media(
 )
 ```
 
-> ⚠️ **Importante:** El parámetro `url` debe ser la URL pública original de la imagen, no un base64 ni una ruta local. Si pasas base64 u otro formato, la herramienta fallará silenciosamente y el post quedará sin imagen de portada.
+> ⚠️ **Importante:** El parámetro `url` debe ser la URL pública original de la imagen. Si generaste la imagen con IA (punto 1.3), primero guárdala localmente y usa la ruta local, no una URL.
 
-Si la herramienta devuelve un `id`, guárdalo — lo necesitarás como `featured_media` al crear el post. Si devuelve error, pasa al punto 1.4.
+Si la herramienta devuelve un `id`, guárdalo — lo necesitarás como `featured_media` al crear el post.
 
-**1.4 Si no se encuentra ninguna imagen**
+#### 1.5 Si ninguna imagen se pudo obtener
 
-Continúa sin imagen de portada y añade una nota interna:
+Si fallan todas las fuentes (RAWG, Wikimedia, Hugging Face), continúa sin imagen de portada:
 ```
 featured_media: null
 // IMAGEN PENDIENTE: no se encontró imagen de dominio público
@@ -174,3 +247,12 @@ Una vez completado todo el proceso, genera un resumen con:
 **Categoría no encontrada** — Usa `wp_create_category` para crearla antes de intentar asignarla al post.
 
 **Imagen no subida** — Verifica que el formato es jpg, png o webp y que el tamaño no supera el límite de subida configurado en WordPress (por defecto 8MB).
+
+**RAWG API devuelve error de autenticación**
+- Verifica que estás usando la key real del `.env`, NO "demo" ni placeholders
+- La URL correcta es: `https://api.rawg.io/api/games?search={juego}&key={TU_RAWG_API_KEY}`
+- Si no conoces el valor, Lee el archivo `.env` del proyecto antes de continuar
+
+**Hugging Face devuelve error de autenticación**
+- Verifica que estás usando el token real del `.env`, NO un valor inventado
+- Si no conoces el valor, Lee el archivo `.env` del proyecto antes de continuar
