@@ -1,14 +1,4 @@
----
-trigger: always_on
----
-
 # Regla: Acceso a Variables de Entorno
-
-## Activación
-
-Always On — Esta regla se aplica a TODO el contenido generado y todas las acciones del agente.
-
----
 
 ## Requisito Obligatorio
 

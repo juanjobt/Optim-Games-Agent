@@ -1,54 +1,122 @@
-# Optim-Games-Agent
+# Optim Games Agent
 
-Optim-Games-Agent es un agente de IA diseñado para crear y publicar contenido sobre videojuegos en diferentes plataformas.
+Agente de IA para generar y publicar contenido sobre videojuegos retro en [games.optimbyte.com](https://games.optimbyte.com). Automatiza el flujo completo: desde la búsqueda de ideas hasta la publicación en WordPress con imagen de portada y metadatos SEO.
 
-# Plan Global
+---
 
-Plan para tu Blog de Juegos con IA 🎮
+## Requisitos
 
-## Fase 1 — Montar el Blog en WordPress
-Lo primero es tener la casa lista. Necesitarás:
-- [x] Hosting + Sub Dominio: games.optimbyte.com.
-- [x] WordPress instalado y configurado.
-- [] usuario administrador y su clave de API lista.
+- [OpenCode](https://opencode.ai) instalado y configurado
+- Acceso al blog WordPress con el plugin `wordpress-mcp` activo
+- Archivo `.env` en la raíz del proyecto con las credenciales (ver siguiente sección)
 
-## Fase 2 — Diseñar el Agente con Antigravity (Rules + Skills)
+---
 
-Esta es la parte más interesante. El agente tendrá básicamente dos responsabilidades: generar contenido y publicarlo.
-En cuanto a las Rules, definirán la personalidad y el estilo del agente: qué tipo de posts genera, en qué tono escribe (nostálgico, informativo, entusiasta), qué estructura sigue un post (intro, historia del juego, gameplay, por qué es un clásico, conclusión), y qué restricciones tiene.
-En cuanto a las Skills, serán las capacidades concretas del agente. Por ahora necesitarías al menos dos: una skill de generación de contenido (que dada una temática o un juego, produzca el post completo) y una skill de publicación en WordPress (que tome ese contenido y lo suba vía API REST).
+## Configuración inicial
 
-- [] Rules base
-- [] skill de generación de contenido
-- [] skill de publicación en WordPress
-- [] workflow crear-post
-- [] prueba y depuracion de workflow
+Crea un archivo `.env` en la raíz del proyecto con estos valores:
 
-## Fase 3 — Expansión a Redes Sociales
+```env
+RAWG_API_KEY=tu_rawg_api_key
+HF_TOKEN=tu_huggingface_token
+WP_BASE_URL=https://games.optimbyte.com
+WP_MCP_JWT_TOKEN=tu_jwt_token_wordpress
+```
 
-Una vez que el flujo WordPress funcione bien, añadirás nuevas skills para cada red. Cada una tendrá sus propias reglas de adaptación del contenido, porque un post de blog de 800 palabras se convierte en un hilo de Twitter/X, un caption corto para Instagram y una publicación más elaborada para Facebook. El agente ya tendrá el contenido base generado, solo necesitará reformatearlo.
+> ⚠️ El token JWT de WordPress tiene una duración máxima de 24h. Si ves errores de autenticación, regenera el token en **Ajustes → WordPress MCP → Authentication Tokens** y actualiza el `.env`.
 
+---
 
-# Uso de los WorkFlows
+## Comandos disponibles
 
-## create-post
+### `/create-post`
 
-Ejecuta el workflow /create-post con los siguientes datos:
+Genera y publica un post completo. El agente se encarga de investigar, redactar, preparar el SEO, buscar la imagen de portada y publicar en WordPress.
+
+**Uso con datos concretos:**
+```
+/create-post
 
 Juego: Chrono Trigger
 Tipo de post: Historia y curiosidades
 Plataforma: Super Nintendo
 Enfoque: El caos creativo detrás del desarrollo — cómo un equipo de lujo con agenda imposible acabó haciendo una obra maestra casi por accidente
+```
 
-Sigue todos los pasos del workflow en orden: investiga primero, redacta después, prepara los metadatos SEO, busca imagen de portada en Wikimedia Commons y muéstrame el resumen de revisión antes de publicar.
+**Uso con una idea de la cola:**
+```
+/create-post
+```
+Sin datos adicionales, el agente coge automáticamente la primera idea pendiente de `memory/post-ideas.md`.
 
-## generate-post-ideas
+**Tipos de post disponibles:**
 
-Ejemplo de invocación con filtros:
-Ejecuta el workflow /generate-post-ideas con los siguientes filtros:
+| Tipo | Extensión | Estructura |
+|------|-----------|------------|
+| Review | 1000-1500 palabras | Gancho → Ficha técnica → Sinopsis → Gameplay → Envejecimiento → Veredicto |
+| Historia y curiosidades | 800-1200 palabras | Gancho → Contexto → Narrativa → Datos curiosos → Conclusión |
+| Lista y ranking | 600-900 palabras | Intro provocadora → Ítems → Número 1 destacado → Cierre debate |
+
+---
+
+### `/generate-post-ideas`
+
+Genera 10 prompts editoriales listos para usar con `/create-post` y los guarda en `memory/post-ideas.md` con estado `pendiente`.
+
+**Uso libre** (el agente decide con criterio editorial):
+```
+/generate-post-ideas
+```
+
+**Uso con filtros:**
+```
+/generate-post-ideas
+
 Plataforma: Mega Drive
 Época: Años 90
 Tipo de post: Historia y curiosidades
+```
 
-Ejemplo de invocación libre:
-Ejecuta el workflow /generate-post-ideas. Decide tú qué juegos son más interesantes.
+**Filtros disponibles:**
+
+| Filtro | Ejemplos |
+|--------|---------|
+| `Plataforma` | Super Nintendo, Mega Drive, Arcade, PlayStation, PC, Game Boy |
+| `Género` | RPG, Plataformas, Beat em up, Puzzle, Aventura gráfica |
+| `Época` | Años 80, Años 90, 1994 |
+| `Tipo de post` | Review, Historia y curiosidades, Lista y ranking |
+| `Enfoque temático` | juegos infravalorados, fracasos legendarios, sagas olvidadas |
+| `Cantidad` | Por defecto: 10 |
+
+El agente evita automáticamente repetir juegos que ya estén en memoria (en cualquier estado).
+
+---
+
+## Sistema de memoria
+
+El archivo `memory/post-ideas.md` es la cola editorial del blog. Registra todas las ideas generadas y su estado.
+
+| Estado | Significado |
+|--------|-------------|
+| `pendiente` | Generada, lista para usar |
+| `en uso` | Siendo procesada ahora mismo |
+| `publicado` | Ya publicada en WordPress |
+
+---
+
+## Solución de problemas frecuentes
+
+**El token JWT ha expirado**
+Regenera el token en **Ajustes → WordPress MCP → Authentication Tokens** y actualiza `WP_MCP_JWT_TOKEN` en `.env`.
+
+**La imagen no se sube correctamente**
+Verifica que el archivo no supere 8MB y que el formato sea jpg, png o webp. Comprueba también que el usuario de WordPress tiene rol de administrador o editor.
+
+**RAWG devuelve error de autenticación**
+El agente está usando un valor incorrecto para `RAWG_API_KEY`. Verifica que el archivo `.env` existe y contiene el valor real.
+
+**No se encuentran las categorías en WordPress**
+Las categorías `reviews`, `historia-y-curiosidades` y `listas-y-rankings` deben existir en WordPress. Si no existen, el agente las crea automáticamente al publicar el primer post de cada tipo.
+
+**El agente no sigue la voz del blog**
+Revisa `blog-identity.md` — es la biblia editorial del blog. Si el tono no encaja, es el primer sitio donde mirar.

@@ -1,13 +1,4 @@
----
-trigger: always_on
----
-
 # Blog Identity — Optim Games
-
-## Activation
-Always On
-
----
 
 ## Identidad del Blog
 
@@ -99,6 +90,42 @@ El SEO no debe sacrificar la naturalidad del texto. Nunca fuerces una keyword do
 ---
 
 ## Lo que nunca debe hacer este blog
+
+## Formato HTML
+ 
+El contenido de los posts debe estar en HTML limpio y semántico:
+ 
+- `<h2>` para secciones principales
+- `<h3>` para subsecciones o ítems de lista
+- `<p>` para párrafos
+- `<strong>` para énfasis puntuales (no abuses)
+- `<em>` para títulos de juegos la primera vez que se mencionan
+- `<ul>` y `<li>` para listas
+- No uses `<h1>` — WordPress lo reserva para el título del post
+- No uses estilos inline — el tema de WordPress gestiona el diseño
+ 
+---
+ 
+## Longitud y ritmo
+ 
+- Los párrafos no deberían superar las 4-5 líneas. Si se alargan, rómpelos.
+- Varía la longitud — alterna párrafos largos con párrafos cortos de impacto.
+- Si un apartado se alarga sin aportar información nueva, córtalo.
+- Mejor quedarse corto con sustancia que llegar al límite con relleno.
+ 
+---
+ 
+## Checklist final antes de publicar
+ 
+- [ ] La primera línea engancha sin presentaciones
+- [ ] El tono es consistente de principio a fin
+- [ ] Hay al menos un momento de humor natural en el texto
+- [ ] No hay frases copiadas de otras fuentes sin reescribir
+- [ ] La estructura corresponde exactamente al tipo de post
+- [ ] La extensión está dentro del rango correcto para ese tipo
+- [ ] El HTML es limpio y no usa `<h1>` ni estilos inline
+- [ ] No hay spoilers sin aviso previo
+- [ ] El cierre tiene personalidad y no es una fórmula genérica
 
 - Publicar contenido generado sin revisión de tono — el humor forzado es peor que no tener humor
 - Hacer spoilers de finales o giros argumentales sin avisar claramente

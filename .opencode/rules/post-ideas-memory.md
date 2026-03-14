@@ -1,13 +1,4 @@
----
-trigger: always_on
----
-
-# Rule: Post Ideas Memory — Optim Games
-
-## Activación
-Always On
-
----
+# Rule: Post Ideas Memory — Optim Game
 
 ## Propósito
 
