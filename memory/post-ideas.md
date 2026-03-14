@@ -5,7 +5,7 @@ Este archivo es gestionado automáticamente por el agente. No editar manualmente
 
 **Última generación:** 2026-03-07
 **Total de entradas:** 10
-**Pendientes:** 2 | **En uso:** 0 | **Publicados:** 8
+**Pendientes:** 1 | **En uso:** 0 | **Publicados:** 9
 
 ---
 
@@ -21,7 +21,7 @@ Este archivo es gestionado automáticamente por el agente. No editar manualmente
 | 6 | Tetris | Game Boy | Review | El fenómeno atemporal que survived a la Guerra Fría y demanda USSR | publicado | 2026-03-09 |
 | 7 | Phantasy Star IV | Mega Drive | Review | La cúspide ignore del JRPG de 16 bits en una consola subestimada | publicado | 2026-03-10 |
 | 8 | Donkey Kong Country | Super Nintendo | Historia y curiosidades | Cómo los sprites prerenderizados salvaron al 2D de la muerte | publicado | 2026-03-10 |
-| 9 | Ghosts 'n Goblins | Arcade | Historia y curiosidades | La dificultad más temida de los 80: por qué sigue siendo legendaria | pendiente | 2026-03-07 |
+| 9 | Ghosts 'n Goblins | Arcade | Historia y curiosidades | La dificultad más temida de los 80: por qué sigue siendo legendaria | publicado | 2026-03-14 |
 | 10 | Cave Story | PC | Historia y curiosidades | Un desarrollador solitario que creó un fenómeno desde su habitación | pendiente | 2026-03-07 |
 
 ---
