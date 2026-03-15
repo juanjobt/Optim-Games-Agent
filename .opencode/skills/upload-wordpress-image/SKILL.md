@@ -5,7 +5,7 @@ description: Sube una imagen a la biblioteca de medios de WordPress y la asigna 
 
 # Skill: Subir Imagen a WordPress
 
-Proceso técnico completo para subir una imagen a WordPress via MCP: descarga, conversión a base64 y asignación como featured image.
+Delega la subida completa al script `.opencode/skills/upload-wordpress-image/wp_upload_image.py`, que gestiona la descarga, el upload multipart y la asignación de featured image sin pasar datos por el contexto del agente.
 
 ---
 
@@ -13,6 +13,8 @@ Proceso técnico completo para subir una imagen a WordPress via MCP: descarga, c
 
 - URL pública de la imagen (obtenida de `find-game-image`)
 - ID del post destino (obtenido tras `wp_create_post` o de un post existente)
+- Script `.opencode/skills/upload-wordpress-image/wp_upload_image.py` presente en el proyecto
+- Credenciales `WP_BASE_URL`, `WP_USER` y `WP_APP_PASSWORD` en `.env`
 
 ---
 
@@ -22,60 +24,40 @@ Proceso técnico completo para subir una imagen a WordPress via MCP: descarga, c
 wp_get_post(id: POST_ID, context: "edit")
 ```
 
-Confirma que el post existe y anota el valor actual de `featured_media`.
+Confirma que el post existe. Anota el valor actual de `featured_media`.
 
 ---
 
-## Paso 2 — Descargar la imagen
+## Paso 2 — Ejecutar el script de subida
 
 ```bash
-curl -s -o "/tmp/imagen_temporal.jpg" "https://url-de-la-imagen.jpg"
-ls -lh "/tmp/imagen_temporal.jpg"
+python3 .opencode/skills/upload-wordpress-image/wp_upload_image.py \
+  --url "URL_DE_LA_IMAGEN" \
+  --post-id POST_ID \
+  --game "NOMBRE_DEL_JUEGO" \
+  --platform "PLATAFORMA"
 ```
+
+El script se encarga de todo:
+- Descarga la imagen a `/tmp`
+- La sube a WordPress via REST API multipart (sin pasar base64 por contexto)
+- Actualiza alt_text, caption y description
+- Asigna la imagen como `featured_media` del post
+- Elimina el archivo temporal
 
 ---
 
-## Paso 3 — Convertir a base64
+## Paso 3 — Verificar el resultado
 
-```bash
-base64 "/tmp/imagen_temporal.jpg" > "/tmp/imagen_base64.txt"
-head -c 100 "/tmp/imagen_base64.txt"
-```
-
-El archivo base64 debe contener solo el contenido codificado, sin encabezados como `data:image/jpeg;base64,`.
-
----
-
-## Paso 4 — Leer el contenido base64
-
-Lee el archivo `/tmp/imagen_base64.txt` completo. Guarda el contenido para el paso siguiente.
-
----
-
-## Paso 5 — Subir a la biblioteca de medios
+El script imprime al final:
 
 ```
-wp_upload_media(
-  file: "CONTENIDO_BASE64",
-  title: "Portada de NOMBRE_DEL_JUEGO",
-  alt_text: "Portada de NOMBRE_DEL_JUEGO para PLATAFORMA",
-  caption: "Portada de NOMBRE_DEL_JUEGO",
-  description: "Portada de NOMBRE_DEL_JUEGO"
-)
+✓ Imagen subida y asignada correctamente
+  media_id: 42
+  post_id : 123
 ```
 
-Si la respuesta incluye un `id`, guárdalo — es el `media_id` para el paso siguiente.
-
----
-
-## Paso 6 — Asignar como imagen destacada
-
-```
-wp_update_post(
-  id: POST_ID,
-  featured_media: MEDIA_ID
-)
-```
+Si ves ese mensaje, la imagen está asignada. No es necesario llamar a `wp_update_post` manualmente.
 
 ---
 
@@ -83,10 +65,12 @@ wp_update_post(
 
 | Error | Causa probable | Solución |
 |-------|---------------|----------|
-| `Invalid input` al subir | Base64 con encabezados o malformado | Verifica que no incluya `data:image/jpeg;base64,` |
-| Imagen no visible en el post | `featured_media` no asignado | Verifica que el `wp_update_post` devolvió éxito |
-| Imagen de baja resolución | Miniatura de API en lugar de portada | Buscar URL de mayor resolución en `find-game-image` |
-| Permisos insuficientes | Token sin permisos de subida | Verifica rol del usuario (admin o editor) y renueva el token |
+| `ERROR descargando imagen` | URL inválida o inaccesible | Verificar URL manualmente; volver a `find-game-image` |
+| `archivo descargado demasiado pequeño` | URL redirige a página de error | Buscar URL directa de la imagen |
+| `ERROR HTTP 401` | Credenciales incorrectas | Verificar `WP_USER` y `WP_APP_PASSWORD` en `.env` |
+| `ERROR HTTP 403` | Usuario sin permisos de subida | Verificar que el usuario tiene rol admin o editor |
+| `WP_BASE_URL, WP_USER y WP_APP_PASSWORD son obligatorios` | `.env` no encontrado o incompleto | Verificar que el script se ejecuta desde la raíz del proyecto |
+| `featured_media devuelto no coincide` | Asignación parcialmente fallida | Ejecutar manualmente `wp_update_post(id: POST_ID, featured_media: MEDIA_ID)` con el media_id impreso |
 
 ## Formatos soportados
 

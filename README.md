@@ -21,9 +21,15 @@ RAWG_API_KEY=tu_rawg_api_key
 HF_TOKEN=tu_huggingface_token
 WP_BASE_URL=https://games.optimbyte.com
 WP_MCP_JWT_TOKEN=tu_jwt_token_wordpress
+WP_USER=tu_usuario_wordpress
+WP_APP_PASSWORD=xxxx xxxx xxxx xxxx xxxx xxxx
 ```
 
 > ⚠️ El token JWT de WordPress tiene una duración máxima de 24h. Si ves errores de autenticación, regenera el token en **Ajustes → WordPress MCP → Authentication Tokens** y actualiza el `.env`.
+>
+> **Nota sobre autenticación dual:** El agente usa dos sistemas de autenticación:
+> - `WP_MCP_JWT_TOKEN` para las operaciones MCP (crear posts, categorías, tags)
+> - `WP_USER` + `WP_APP_PASSWORD` para la subida de imágenes via el script Python `wp_upload_image.py`
 
 ---
 
@@ -110,7 +116,13 @@ El archivo `memory/post-ideas.md` es la cola editorial del blog. Registra todas 
 Regenera el token en **Ajustes → WordPress MCP → Authentication Tokens** y actualiza `WP_MCP_JWT_TOKEN` en `.env`.
 
 **La imagen no se sube correctamente**
-Verifica que el archivo no supere 8MB y que el formato sea jpg, png o webp. Comprueba también que el usuario de WordPress tiene rol de administrador o editor.
+Verifica que el archivo no supere 8MB y que el formato sea jpg, png o webp. Comprueba también que:
+1. `WP_USER` y `WP_APP_PASSWORD` están correctos en `.env`
+2. El usuario tiene rol de administrador o editor
+3. La aplicación password tiene permisos de escritura
+
+**Error "WP_BASE_URL, WP_USER y WP_APP_PASSWORD son obligatorios"**
+El script `wp_upload_image.py` no encuentra las credenciales. Verifica que el archivo `.env` existe en la raíz del proyecto y contiene las tres variables.
 
 **RAWG devuelve error de autenticación**
 El agente está usando un valor incorrecto para `RAWG_API_KEY`. Verifica que el archivo `.env` existe y contiene el valor real.
