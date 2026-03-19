@@ -1,6 +1,6 @@
-# AGENTS.md — Optim Games Agent
+# AGENTS.md — Optim Pixel Agent
 
-Agente de IA para crear y publicar contenido sobre videojuegos retro en games.optimbyte.com.
+Agente de IA para crear y publicar contenido sobre videojuegos retro en optimpixel.com.
 
 ## Descripción del proyecto
 

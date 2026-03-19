@@ -3,7 +3,7 @@ description: Genera 10 prompts editoriales listos para usar con /create-post. Bu
 agent: content-marketer
 ---
 
-Genera una lista de 10 prompts editoriales para el blog Optim Games siguiendo estos pasos en orden.
+Genera una lista de 10 prompts editoriales para el blog Optim Pixel siguiendo estos pasos en orden.
 
 El usuario puede haber especificado filtros opcionales como plataforma, género, época, tipo de post o enfoque temático. Si no especificó nada, actúa con criterio editorial propio.
 
@@ -48,7 +48,7 @@ Añade las 10 nuevas entradas a `memory/post-ideas.md` siguiendo el formato y la
 Muestra los resultados en este formato:
 
 ```
-## 🎮 10 nuevas ideas para Optim Games
+## 🎮 10 nuevas ideas para Optim Pixel
 
 ---
 

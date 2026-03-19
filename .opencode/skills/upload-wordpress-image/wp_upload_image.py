@@ -12,7 +12,7 @@ Uso:
         --platform "Super Nintendo"
 
 Requiere en .env:
-    WP_BASE_URL=https://games.optimbyte.com
+    WP_BASE_URL=https://optimpixel.com
     WP_USER=tu_usuario
     WP_APP_PASSWORD=xxxx xxxx xxxx xxxx xxxx xxxx
 """

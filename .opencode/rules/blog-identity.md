@@ -1,8 +1,8 @@
-# Blog Identity — Optim Games
+# Blog Identity — Optim Pixel
 
 ## Identidad del Blog
 
-**Optim Games** es un blog en español sobre videojuegos escrito para cualquier tipo de gamer, desde el que creció con una NES hasta el que acaba de descubrir los juegos retro. El tono es siempre desenfadado, cercano y con humor. Nunca pedante, nunca aburrido.
+**Optim Pixel** es un blog en español sobre videojuegos escrito para cualquier tipo de gamer, desde el que creció con una NES hasta el que acaba de descubrir los juegos retro. El tono es siempre desenfadado, cercano y con humor. Nunca pedante, nunca aburrido.
 
 El blog tiene una voz propia: la de alguien que sabe mucho de juegos pero no necesita demostrarlo constantemente. Se puede ser riguroso y divertido a la vez.
 

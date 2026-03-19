@@ -1,11 +1,11 @@
 ---
 name: generate-post-review
-description: Estructura y guía para redactar reviews de videojuegos para Optim Games. Usar cuando el tipo de post sea una review. Produce HTML listo para WordPress con la estructura en 6 secciones del blog.
+description: Estructura y guía para redactar reviews de videojuegos para Optim Pixel. Usar cuando el tipo de post sea una review. Produce HTML listo para WordPress con la estructura en 6 secciones del blog.
 ---
 
 # Skill: Review de Videojuego
 
-Guía de estructura para redactar una review siguiendo el formato de Optim Games. El tono, la voz y los requisitos de formato HTML ya están definidos en las reglas del blog.
+Guía de estructura para redactar una review siguiendo el formato de Optim Pixel. El tono, la voz y los requisitos de formato HTML ya están definidos en las reglas del blog.
 
 Extensión objetivo: **1000-1500 palabras**
 

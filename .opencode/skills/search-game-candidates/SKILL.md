@@ -1,6 +1,6 @@
 ---
 name: search-game-candidates
-description: Busca juegos clásicos candidatos a convertirse en posts para Optim Games. Dado un conjunto de filtros opcionales (plataforma, género, época, tipo de post), genera una lista enriquecida de candidatos con contexto editorial suficiente para evaluar su potencial. Usar al generar nuevas ideas para la cola de publicación.
+description: Busca juegos clásicos candidatos a convertirse en posts para Optim Pixel. Dado un conjunto de filtros opcionales (plataforma, género, época, tipo de post), genera una lista enriquecida de candidatos con contexto editorial suficiente para evaluar su potencial. Usar al generar nuevas ideas para la cola de publicación.
 ---
 
 # Skill: Search Game Candidates
@@ -49,7 +49,7 @@ Genera internamente un pool amplio (mínimo el doble de la cantidad solicitada) 
 - ¿Hay curiosidades o datos poco conocidos?
 - ¿Ha envejecido bien o mal de forma notable?
 - ¿Tiene impacto cultural relevante?
-- ¿Encaja con la voz del blog Optim Games?
+- ¿Encaja con la voz del blog Optim Pixel?
 
 ### Paso 2 — Seleccionar y enriquecer
 

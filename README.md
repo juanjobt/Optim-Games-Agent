@@ -1,6 +1,6 @@
-# Optim Games Agent
+# Optim Pixel Agent
 
-Agente de IA para generar y publicar contenido sobre videojuegos retro en [games.optimbyte.com](https://games.optimbyte.com). Automatiza el flujo completo: desde la búsqueda de ideas hasta la publicación en WordPress con imagen de portada y metadatos SEO.
+Agente de IA para generar y publicar contenido sobre videojuegos retro en [optimpixel.com](https://optimpixel.com). Automatiza el flujo completo: desde la búsqueda de ideas hasta la publicación en WordPress con imagen de portada y metadatos SEO.
 
 ---
 
@@ -19,7 +19,7 @@ Crea un archivo `.env` en la raíz del proyecto con estos valores:
 ```env
 RAWG_API_KEY=tu_rawg_api_key
 HF_TOKEN=tu_huggingface_token
-WP_BASE_URL=https://games.optimbyte.com
+WP_BASE_URL=https://optimpixel.com
 WP_MCP_JWT_TOKEN=tu_jwt_token_wordpress
 WP_USER=tu_usuario_wordpress
 WP_APP_PASSWORD=xxxx xxxx xxxx xxxx xxxx xxxx

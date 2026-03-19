@@ -1,9 +1,9 @@
 ---
-description: Genera y publica un post completo en el blog Optim Games. Guía al agente desde la elección del tema hasta la publicación final en WordPress via MCP, siguiendo la identidad y estilo del blog.
+description: Genera y publica un post completo en el blog Optim Pixel. Guía al agente desde la elección del tema hasta la publicación final en WordPress via MCP, siguiendo la identidad y estilo del blog.
 agent: content-marketer
 ---
 
-Genera y publica un post completo en Optim Games siguiendo estos pasos en orden.
+Genera y publica un post completo en Optim Pixel siguiendo estos pasos en orden.
 
 ## Paso 0 — Determinar el tema
 

@@ -1,6 +1,6 @@
 ---
 name: publish-wordpress
-description: Publica o actualiza posts completos en WordPress via MCP. Gestiona categorías, tags y campos SEO de Yoast. Orquesta el flujo completo de publicación llamando a find-game-image y upload-wordpress-image para la imagen de portada. Usar cuando se necesite publicar contenido en games.optimbyte.com.
+description: Publica o actualiza posts completos en WordPress via MCP. Gestiona categorías, tags y campos SEO de Yoast. Orquesta el flujo completo de publicación llamando a find-game-image y upload-wordpress-image para la imagen de portada. Usar cuando se necesite publicar contenido en optimpixel.com.
 ---
 
 # Skill: Publicar en WordPress
