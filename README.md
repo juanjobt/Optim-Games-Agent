@@ -44,7 +44,7 @@ Genera y publica un post completo. El agente se encarga de investigar, redactar,
 /create-post
 
 Juego: Chrono Trigger
-Tipo de post: Historia y curiosidades
+Tipo de post: Historias
 Plataforma: Super Nintendo
 Enfoque: El caos creativo detrás del desarrollo — cómo un equipo de lujo con agenda imposible acabó haciendo una obra maestra casi por accidente
 ```
@@ -60,8 +60,8 @@ Sin datos adicionales, el agente coge automáticamente la primera idea pendiente
 | Tipo | Extensión | Estructura |
 |------|-----------|------------|
 | Review | 1000-1500 palabras | Gancho → Ficha técnica → Sinopsis → Gameplay → Envejecimiento → Veredicto |
-| Historia y curiosidades | 800-1200 palabras | Gancho → Contexto → Narrativa → Datos curiosos → Conclusión |
-| Lista y ranking | 600-900 palabras | Intro provocadora → Ítems → Número 1 destacado → Cierre debate |
+| Historias | 800-1200 palabras | Gancho → Contexto → Narrativa → Datos curiosos → Conclusión |
+| Listas | 600-900 palabras | Intro provocadora → Ítems → Número 1 destacado → Cierre debate |
 
 ---
 
@@ -80,7 +80,7 @@ Genera 10 prompts editoriales listos para usar con `/create-post` y los guarda e
 
 Plataforma: Mega Drive
 Época: Años 90
-Tipo de post: Historia y curiosidades
+Tipo de post: Historias
 ```
 
 **Filtros disponibles:**
@@ -90,7 +90,7 @@ Tipo de post: Historia y curiosidades
 | `Plataforma` | Super Nintendo, Mega Drive, Arcade, PlayStation, PC, Game Boy |
 | `Género` | RPG, Plataformas, Beat em up, Puzzle, Aventura gráfica |
 | `Época` | Años 80, Años 90, 1994 |
-| `Tipo de post` | Review, Historia y curiosidades, Lista y ranking |
+| `Tipo de post` | Review, Historias, Listas |
 | `Enfoque temático` | juegos infravalorados, fracasos legendarios, sagas olvidadas |
 | `Cantidad` | Por defecto: 10 |
 
@@ -128,7 +128,7 @@ El script `wp_upload_image.py` no encuentra las credenciales. Verifica que el ar
 El agente está usando un valor incorrecto para `RAWG_API_KEY`. Verifica que el archivo `.env` existe y contiene el valor real.
 
 **No se encuentran las categorías en WordPress**
-Las categorías `reviews`, `historia-y-curiosidades` y `listas-y-rankings` deben existir en WordPress. Si no existen, el agente las crea automáticamente al publicar el primer post de cada tipo.
+Las categorías `reviews`, `historias` y `listas` deben existir en WordPress. Si no existen, el agente las crea automáticamente al publicar el primer post de cada tipo.
 
 **El agente no sigue la voz del blog**
 Revisa `blog-identity.md` — es la biblia editorial del blog. Si el tono no encaja, es el primer sitio donde mirar.

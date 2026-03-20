@@ -30,14 +30,14 @@ El blog tiene una voz propia: la de alguien que sabe mucho de juegos pero no nec
 5. **¿Cómo ha envejecido?** — Gráficos, sonido y jugabilidad valorados desde hoy
 6. **Veredicto final** — Conclusión con personalidad, puede incluir puntuación
 
-### Historia y Curiosidades (800-1200 palabras)
+### Historias (800-1200 palabras)
 1. **Titular gancho** — Una curiosidad impactante o pregunta que nadie se había hecho
 2. **El contexto** — Dónde y cuándo nació esto
 3. **Desarrollo narrativo** — La chicha, con ritmo y humor
 4. **Datos curiosos destacados** — Entre 3 y 5 datos que el lector no sabía
 5. **Conclusión** — Reflexión corta con cierre con personalidad
 
-### Listas y Rankings (600-900 palabras)
+### Listas (600-900 palabras)
 1. **Intro con provocación** — Algo que invite al debate desde el primer párrafo
 2. **Los ítems** — Cada uno con mini-descripción y justificación de por qué está en la lista
 3. **El número 1** — Con más desarrollo que el resto, es el momento estrella
@@ -49,8 +49,8 @@ El blog tiene una voz propia: la de alguien que sabe mucho de juegos pero no nec
 
 **Categorías principales** — Solo indican el tipo de contenido. Cada post tiene exactamente una:
 - Reviews
-- Historia y curiosidades
-- Listas y rankings
+- Historias
+- Listas
 
 **Tags** — Son el alma del blog. Cada post debe llevar obligatoriamente tags de cada uno de estos grupos:
 

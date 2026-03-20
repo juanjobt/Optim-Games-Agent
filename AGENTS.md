@@ -31,8 +31,8 @@ opencode.json     # Configuración del agente y MCP
 | Skill | Cuándo usarla |
 |-------|---------------|
 | `generate-post-review` | Redactar una review |
-| `generate-post-historia` | Redactar un post de historia y curiosidades |
-| `generate-post-lista` | Redactar un post de lista y ranking |
+| `generate-post-historia` | Redactar un post de historia |
+| `generate-post-lista` | Redactar un post de lista |
 | `find-game-image` | Localizar imagen de portada (RAWG → Wikimedia) |
 | `upload-wordpress-image` | Subir imagen a la biblioteca de medios de WordPress |
 | `publish-wordpress` | Publicar un post via MCP |
@@ -55,8 +55,8 @@ Disponibles via `wordpress-mcp-remote`:
 | Tipo de post | Slug |
 |--------------|------|
 | Review | `reviews` |
-| Historia y curiosidades | `historia-y-curiosidades` |
-| Lista o ranking | `listas-y-rankings` |
+| Historias | `historias` |
+| Listas | `listas` |
 
 ## Sistema de memoria
 

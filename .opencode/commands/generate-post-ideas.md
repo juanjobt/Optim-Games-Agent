@@ -15,7 +15,7 @@ Usa la skill `search-game-candidates` pasándole los filtros recibidos (o ningun
 
 De los candidatos obtenidos, selecciona los 10 con mayor potencial editorial aplicando estos criterios de desempate:
 
-1. **Variedad de tipos de post** — La lista final debe mezclar Reviews, Historia y curiosidades, y Listas y rankings
+1. **Variedad de tipos de post** — La lista final debe mezclar Reviews, Historias, y Listas
 2. **Variedad de plataformas y épocas** — No acumular todo en la misma consola o década
 3. **Potencial de engagement** — Priorizar juegos con historias que inviten al debate, la nostalgia o la sorpresa
 4. **Equilibrio conocido/desconocido** — Mezclar títulos reconocibles con alguna joya menos evidente
@@ -28,7 +28,7 @@ Para cada uno de los 10 juegos seleccionados, genera un prompt completo en este 
 Ejecuta el comando /create-post con los siguientes datos:
 
 Juego: [nombre del juego]
-Tipo de post: [Review / Historia y curiosidades / Lista y ranking]
+Tipo de post: [Review / Historias / Listas]
 Plataforma: [plataforma]
 Enfoque: [descripción del ángulo editorial en una frase]
 ```
@@ -36,7 +36,7 @@ Enfoque: [descripción del ángulo editorial en una frase]
 El enfoque debe ser específico y atractivo, nunca genérico:
 - ✅ "El diseñador que creó el sistema de combate en un fin de semana porque el equipo estaba en crisis"
 - ✅ "Por qué fracasó en ventas un juego que inventó el género de los metroidvania"
-- ❌ "La historia y curiosidades del juego"
+- ❌ "La historias del juego"
 - ❌ "Review completa con todo lo importante"
 
 ## Paso 4 — Guardar en memoria

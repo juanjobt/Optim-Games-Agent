@@ -33,7 +33,7 @@ Enfoque: [enfoque]
 Si ya tienes datos del Paso 0 o del mensaje de invocación, úsalos sin preguntar de nuevo. Solo pregunta lo que falte:
 
 - ¿Sobre qué juego o tema es el post?
-- ¿Qué tipo de post es? (Review / Historia y curiosidades / Lista y ranking)
+- ¿Qué tipo de post es? (Review / Historias / Listas)
 - ¿En qué plataforma o plataformas?
 - (Opcional) ¿Hay algún enfoque o ángulo concreto? ¿Alguna instrucción especial?
 
@@ -58,8 +58,8 @@ No inventes datos — si no estás seguro de algo, omítelo o indícalo claramen
 Según el tipo de post, carga la skill correspondiente y sigue su estructura:
 
 - Review → skill `generate-post-review`
-- Historia y curiosidades → skill `generate-post-historia`
-- Lista o ranking → skill `generate-post-lista`
+- Historias → skill `generate-post-historia`
+- Listas → skill `generate-post-lista`
 
 Escribe el post completo en HTML limpio siguiendo la estructura de la skill y la voz del blog definida en `blog-identity`.
 

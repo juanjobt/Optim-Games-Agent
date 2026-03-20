@@ -27,7 +27,7 @@ Todos opcionales. Si no se especifica ninguno, el agente actúa con criterio edi
 - `plataforma` — Ej: Super Nintendo, Mega Drive, Arcade, PC, Game Boy, PlayStation
 - `genero` — Ej: RPG, Plataformas, Beat em up, Puzzle, Aventura gráfica
 - `epoca` — Ej: Años 80, Años 90, o un año concreto como 1993
-- `tipo_post` — Review / Historia y curiosidades / Lista y ranking
+- `tipo_post` — Review / Historias / Listas
 - `enfoque_tematico` — Ej: juegos infravalorados, sagas olvidadas, fracasos adelantados a su tiempo
 - `cantidad` — Por defecto: 15 (para poder seleccionar los 10 mejores)
 
@@ -59,7 +59,7 @@ Del pool, seleccionar los mejores según potencial editorial. Para cada candidat
 - Juego: [nombre exacto]
 - Plataforma: [plataforma principal]
 - Época: [año o década]
-- Tipo de post sugerido: [Review / Historia y curiosidades / Lista y ranking]
+- Tipo de post sugerido: [Review / Historias / Listas]
 - Enfoque sugerido: [una frase describiendo el ángulo editorial más interesante]
 - Por qué es buena idea: [1-2 frases de justificación editorial]
 ```

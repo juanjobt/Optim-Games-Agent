@@ -42,8 +42,8 @@ wp_get_tags()
 | Tipo de post | Slug |
 |---|---|
 | Review | `reviews` |
-| Historia y curiosidades | `historia-y-curiosidades` |
-| Lista o ranking | `listas-y-rankings` |
+| Historias | `historias` |
+| Listas | `listas` |
 
 **Tags obligatorios** por grupos:
 - **Plataforma/s:** `Super Nintendo`, `PlayStation`, `Mega Drive`, `Arcade`, `PC`, `Game Boy`…
