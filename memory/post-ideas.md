@@ -27,7 +27,7 @@ Este archivo es gestionado automáticamente por el agente. No editar manualmente
 | 12 | Final Fantasy VI | Super Nintendo | Review | La ópera de 16 bits que demostró que los videojuegos podían hacer llorar al jugador | publicado | 2026-03-15 |
 | 13 | Sonic the Hedgehog | Mega Drive | Historias | La estrategia de marketing que convirtió a un erizo azul en el rival de Mario | publicado | 2026-03-16 |
 | 14 | Super Mario 64 | Nintendo 64 | Review | El salto al 3D que redefinió para siempre cómo se controla un personaje en videojuegos | publicado | 2026-03-19 |
-| 15 | Resident Evil | PlayStation | Historias | Cómo un equipo de desarrollo en crisis creó el survival horror con cámaras fijas y puertas que cargaban | pendiente | 2026-03-14 |
+| 15 | Resident Evil | PlayStation | Historias | Cómo un equipo de desarrollo en crisis creó el survival horror con cámaras fijas y puertas que cargaban | publicado | 2026-03-20 |
 | 16 | Half-Life | PC | Historias | El motor que Valve modificó tanto que id Software no lo reconoció, y cómo cambió los FPS | pendiente | 2026-03-14 |
 | 17 | Portal | PC | Review | El proyecto estudiantil 'Narbacular Drop' que Valve contrató en bloque para convertirlo en Portal | pendiente | 2026-03-14 |
 | 18 | Panzer Dragoon Saga | Sega Saturn | Historias | El RPG de Sega Saturn que solo se produjo en 20.000 copias y hoy vale fortunas | pendiente | 2026-03-14 |

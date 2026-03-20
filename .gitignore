@@ -29,3 +29,4 @@ desktop.ini
 # Archivos de test y depuración locales
 *.test.local
 debug/
+drafts/
