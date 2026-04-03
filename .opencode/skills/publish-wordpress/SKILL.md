@@ -1,6 +1,6 @@
 ---
 name: publish-wordpress
-description: Publica o actualiza posts completos en WordPress via MCP. Gestiona categorías, tags y campos SEO de Yoast. Orquesta el flujo completo de publicación llamando a find-game-image y upload-wordpress-image para la imagen de portada. Usar cuando se necesite publicar contenido en optimpixel.com.
+description: Publica o actualiza posts completos en WordPress via MCP. Gestiona categorías y tags. Orquesta el flujo completo de publicación llamando a find-game-image y upload-wordpress-image para la imagen de portada. Usar cuando se necesite publicar contenido en optimpixel.com.
 ---
 
 # Skill: Publicar en WordPress
@@ -66,22 +66,14 @@ wp_create_category(name: "Nombre", slug: "slug")
 ```
 wp_create_post(
   title: "Título del post",
-  slug: "slug-optimizado-seo",
+  slug: "slug-del-post",
   content: "<p>Contenido completo en HTML...</p>",
   excerpt: "Meta descripción de 150-160 caracteres",
   status: "publish",
   categories: [ID_categoria],
   tags: [ID_tag_1, ID_tag_2, ...],
-  featured_media: MEDIA_ID,
-  meta: {
-    "_yoast_wpseo_title": "Título SEO",
-    "_yoast_wpseo_metadesc": "Meta descripción 150-160 caracteres",
-    "_yoast_wpseo_focuskw": "keyword principal"
-  }
+  featured_media: MEDIA_ID
 )
-```
-
-> **Yoast SEO:** Para que los campos `_yoast_wpseo_*` funcionen via MCP, activa la integración REST API en **Yoast → Configuración → Integraciones → REST API**.
 
 ---
 
@@ -92,7 +84,6 @@ wp_create_post(
 ✅ Categoría asignada
 ✅ Tags asignados
 ✅ Imagen de portada (fuente: RAWG / Wikimedia) o ⚠️ imagen pendiente
-✅ Campos Yoast SEO rellenados
 🕐 Fecha y hora de publicación
 ```
 

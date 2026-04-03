@@ -5,14 +5,14 @@
 
 ---
 
-## ✅ Completado
-
-### Fase 1 — Blog en WordPress
+### ✅ Fase 1 — Blog en WordPress
 - [x] Hosting + subdominio: `optimpixel.com`
 - [x] WordPress instalado y configurado
 - [x] Usuario administrador y clave de API lista
 
-### Fase 2 — Agente con OpenCode
+---
+
+### ✅ Fase 2 — Agente con OpenCode
 
 Esta es la parte más interesante. El agente tendrá básicamente dos responsabilidades: generar contenido y publicarlo.
 En cuanto a las Rules, definirán la personalidad y el estilo del agente: qué tipo de posts genera, en qué tono escribe (nostálgico, informativo, entusiasta), qué estructura sigue un post (intro, historia del juego, gameplay, por qué es un clásico, conclusión), y qué restricciones tiene.
@@ -30,7 +30,7 @@ En cuanto a las Skills, serán las capacidades concretas del agente. Por ahora n
 
 ---
 
-## 🔴 Fase 3 — Dominio propio *(siguiente paso inmediato)*
+## ✅ Fase 3 — Dominio propio
 
 Lo más urgente es el dominio. Busca algo como optimgames.com, retrooptim.com, o algo más temático como pixelchronicles.com. Herramientas como Namecheap o Porkbun tienen buscadores buenos. Una vez registrado, el proceso en WordPress es: apuntar las DNS, cambiar la URL en Ajustes, instalar un plugin de redirecciones (Redirection es el más sencillo), y dar de alta el nuevo dominio en Google Search Console. Los 20 posts que tienes ya empezarán a acumular autoridad en el dominio correcto.
 
@@ -39,10 +39,10 @@ Lo más urgente es el dominio. Busca algo como optimgames.com, retrooptim.com, o
 - [x] Elegir y registrar dominio temático (corto, sin guiones, sin subdominio). Será optimpixel.com
 - [x] Apuntar DNS al hosting actual
 - [x] Migrar WordPress al nuevo dominio (Ajustes → General → URL)
-- [ ] ~~Instalar plugin Redirection y configurar redirecciones 301 desde `games.optimbyte.com`~~
-- [ ] Dar de alta el nuevo dominio en Google Search Console
-- [ ] Configurar Google Analytics 4 en el nuevo dominio
-- [ ] Enviar sitemap actualizado desde Search Console
+- [x] Dar de alta el nuevo dominio en Google Search Console
+- [x] Configurar Google Analytics 4 en el nuevo dominio
+- [x] Enviar sitemap actualizado desde Search Console
+- [x] en google search console: Ve a Configuración → Asociaciones y asegúrate de que apunta a https://optimpixel.com.
 
 ---
 
@@ -52,8 +52,8 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 
 **Impacto:** Sin esto, el contenido existe pero Google no lo prioriza.
 
-- [ ] Instalar Rank Math o Yoast SEO
-- [ ] Configurar schema markup de tipo `VideoGame` y `Article` en cada post
+- [x] Instalar Rank Math o Yoast SEO
+- [x] Configurar schema markup de tipo `VideoGame` y `Article` en cada post
 - [ ] Auditar velocidad con PageSpeed Insights y llegar a <2.5s
 - [ ] Revisar y limpiar estructura de URLs (sin fechas, sin IDs)
 - [ ] Crear red de internal links entre posts relacionados
@@ -66,11 +66,36 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 
 **Impacto:** Mejor experiencia = más tiempo en página = mejor señal para Google.
 
-- [ ] Home con destacados por categoría (últimas reviews, últimas curiosidades, última lista)
+- [ ] Home con destacados por categoría (últimas reviews, últimas curiosidades, última lista). Home con diseño de "revista" (lo veremos luego).
 - [ ] Página "Sobre el blog" (necesaria para E-E-A-T y confianza del usuario)
+- [ ] Configurar el Buscador y los Breadcrumbs.
 - [ ] Buscador interno visible en header o sidebar
 - [ ] Widget de posts relacionados al final de cada entrada
 - [ ] Breadcrumbs activados (Rank Math los genera automáticamente)
+- [ ] Página de Contacto: Fundamental. Usa un formulario sencillo (tipo WPForms o Contact Form 7) para evitar spam.
+- [ ] Página de "Archivo" o "Mapa del Sitio": Una página donde el usuario pueda ver todos tus posts organizados por mes o por consola/género. A los retro-gamers les encanta navegar por catálogos.
+- [ ] Aviso Legal y Privacidad: Si piensas monetizar o usar Analytics, son obligatorias por ley.
+- [ ] Habilitar Comentarios: ¡Sí! Pero con moderación. Instala Akismet o usa un sistema como Cusdis (más ligero) para evitar que los bots llenen tu base de datos de basura.
+- [ ] Sistema de Valoración (Estrellas): Deja que los usuarios voten los juegos de los que hablas. Esto genera "Rich Snippets" (estrellas en los resultados de Google) y atrae más clics.
+- [ ] Modo Oscuro (Dark Mode): En el mundo gaming es casi un estándar. Un interruptor "Luna/Sol" en el menú mejora mucho la UX.
+- [ ] Barra de Lectura: Una línea fina que avanza según haces scroll. Ayuda a retener al usuario en posts largos.
+- [ ] Fichas Técnicas: Un bloque visual al principio de cada post con: Desarrolladora, Año de lanzamiento, Plataforma y Género.
+
+
+
+## 🔴 Fase 5.5 — Automatización SEO y Enriquecimiento de Datos
+
+Esta fase es el puente entre el contenido bruto y la autoridad en Google.
+
+- [ ] Mapeo de Custom Fields para VideoGame: Configurar el agente (OpenCode) para que envíe los datos técnicos (name, platform, developer, genre) a los campos específicos del plugin Schema & Structured Data. Así el "verde" de Google será automático.
+- [ ] Inyección de Metadatos Rank Math: El agente debe generar y enviar un focus_keyword coherente, un seo_title (máx. 60 caracteres) y una meta_description (máx. 160 caracteres) que invite al clic.
+- [ ] Lógica de Enlazado Interno (Internal Linking): - Implementar una búsqueda por etiquetas o categorías en la "memoria" del agente.
+  - Regla: "Cada nuevo post debe enlazar al menos a otros 2 posts antiguos de temática similar".
+- [ ] Limpieza de "Slugs" (URLs): Asegurar que el agente genere URLs limpias (ej: optimpixel.com/historia-resident-evil/ en lugar de la URL por defecto larga o con fechas).
+- [ ] Consistencia de Marca (E-E-A-T): Configurar al agente para que siempre use el mismo nombre de "Autor" y "Organización" (Optim Pixel) para que Google asocie el contenido con una entidad experta.
+- [ ] Optimización de Imágenes (Alt Text): El agente debe generar automáticamente el atributo alt de las imágenes usando la Keyword principal para mejorar el SEO de Google Imágenes.
+
+
 
 ---
 
