@@ -20,16 +20,13 @@ Crea un archivo `.env` en la raíz del proyecto con estos valores:
 RAWG_API_KEY=tu_rawg_api_key
 HF_TOKEN=tu_huggingface_token
 WP_BASE_URL=https://optimpixel.com
-WP_MCP_JWT_TOKEN=tu_jwt_token_wordpress
 WP_USER=tu_usuario_wordpress
 WP_APP_PASSWORD=xxxx xxxx xxxx xxxx xxxx xxxx
 ```
 
-> ⚠️ El token JWT de WordPress tiene una duración máxima de 24h. Si ves errores de autenticación, regenera el token en **Ajustes → WordPress MCP → Authentication Tokens** y actualiza el `.env`.
->
 > **Nota sobre autenticación dual:** El agente usa dos sistemas de autenticación:
-> - `WP_MCP_JWT_TOKEN` para las operaciones MCP (crear posts, categorías, tags)
-> - `WP_USER` + `WP_APP_PASSWORD` para la subida de imágenes via el script Python `wp_upload_image.py`
+> - Para las operaciones MCP (crear posts, categorías, tags) se utilizará auth por jwt
+> - `WP_USER` + `WP_APP_PASSWORD` para conectar directamente con la api de wordpress cuando se usen scripts de Python
 
 ---
 
@@ -111,9 +108,6 @@ El archivo `memory/post-ideas.md` es la cola editorial del blog. Registra todas 
 ---
 
 ## Solución de problemas frecuentes
-
-**El token JWT ha expirado**
-Regenera el token en **Ajustes → WordPress MCP → Authentication Tokens** y actualiza `WP_MCP_JWT_TOKEN` en `.env`.
 
 **La imagen no se sube correctamente**
 Verifica que el archivo no supere 8MB y que el formato sea jpg, png o webp. Comprueba también que:
