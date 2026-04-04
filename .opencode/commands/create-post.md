@@ -123,6 +123,27 @@ Palabras: ~[número]
 2. Usa la skill `publish-wordpress` para resolver categorías y tags, publicar el post con todos los metadatos SEO y confirmar que está accesible
 
 ---
+ 
+## Paso 7.5 — Inyectar schema VideoGame
+ 
+**Solo para posts de tipo Review o Historia sobre un juego concreto. Omitir para Listas y rankings.**
+ 
+Este paso es **no bloqueante**: si falla, continúa al Paso 8 y reporta el error al final.
+ 
+Carga la skill `set-videogame-schema` y ejecútala con los datos disponibles del post:
+ 
+- `post_id` → ID devuelto por WordPress al publicar (Paso 7)
+- `name` → Nombre del juego (del Paso 1)
+- `description` → Meta descripción SEO generada en el Paso 4
+- `platform` → Plataforma/s del juego (del Paso 1)
+- `genre` → Géneros del juego (de los tags generados en el Paso 4)
+- `author_name` → Desarrolladora (de la investigación del Paso 2)
+- `publisher` → Distribuidora (de la investigación del Paso 2; usar el mismo valor que author_name si coincide)
+- `image` → URL de la imagen de portada subida en el Paso 7
+- `url` → URL pública del post devuelta por WordPress
+- `rating` → Solo si el post es una Review; omitir en otros tipos
+
+---
 
 ## Paso 8 — Actualizar la memoria
 
@@ -145,6 +166,7 @@ Palabras: ~[número]
 🏷️ Tags: [lista]
 🖼️ Imagen: [fuente] o ⚠️ pendiente
 🔍 SEO: keyword "[keyword]" configurada
+🗂 Schema VideoGame: ✓ configurado (schema_id: [id]) o ⚠️ pendiente — [motivo]
 🕐 Publicado: [fecha y hora]
 💾 Memoria: entrada actualizada a `publicado`
 ─────────────────────────────

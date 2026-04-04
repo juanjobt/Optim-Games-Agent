@@ -31,7 +31,7 @@ Este archivo es gestionado automáticamente por el agente. No editar manualmente
 | 16 | Half-Life | PC | Historias | El motor que Valve modificó tanto que id Software no lo reconoció, y cómo cambió los FPS | publicado | 2026-03-24 |
 | 17 | Portal | PC | Review | El proyecto estudiantil 'Narbacular Drop' que Valve contrató en bloque para convertirlo en Portal | publicado | 2026-03-28 |
 | 18 | Panzer Dragoon Saga | Sega Saturn | Historias | El RPG de Sega Saturn que solo se produjo en 20.000 copias y hoy vale fortunas | publicado | 2026-04-03 |
-| 19 | Ico | PlayStation 2 | Review | El juego que inspiró a toda una generación de desarrolladores indie con su minimalismo narrativo | pendiente | 2026-03-14 |
+| 19 | Ico | PlayStation 2 | Review | El juego que inspiró a toda una generación de desarrolladores indie con su minimalismo narrativo | publicado | 2026-04-03 |
 | 20 | Los 5 juegos más infravalorados de PlayStation | PlayStation | Listas | Títulos que pasaron desapercibidos en su momento pero hoy son joyas de culto | pendiente | 2026-03-14 |
 
 ---
