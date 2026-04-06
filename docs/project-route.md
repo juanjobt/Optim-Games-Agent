@@ -54,11 +54,11 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 
 - [x] Instalar Rank Math o Yoast SEO
 - [x] Configurar schema markup de tipo `VideoGame` y `Article` en cada post
-- [ ] Auditar velocidad con PageSpeed Insights y llegar a <2.5s
-- [ ] Revisar y limpiar estructura de URLs (sin fechas, sin IDs)
+- [x] Auditar velocidad con PageSpeed Insights y llegar a <2.5s
+- [x] Revisar y limpiar estructura de URLs (sin fechas, sin IDs)
 - [ ] Crear red de internal links entre posts relacionados
-- [ ] Definir categorías definitivas y asegurarse de que cada post está bien clasificado
-- [ ] Crear y optimizar las páginas de categoría (descripción, H1, intro de texto)
+- [x] Definir categorías definitivas y asegurarse de que cada post está bien clasificado
+- [x] Crear y optimizar las páginas de categoría (descripción, H1, intro de texto)
 
 ---
 
@@ -69,8 +69,8 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 - [ ] Home con destacados por categoría (últimas reviews, últimas curiosidades, última lista). Home con diseño de "revista" (lo veremos luego).
 - [ ] Página "Sobre el blog" (necesaria para E-E-A-T y confianza del usuario)
 - [ ] Configurar el Buscador y los Breadcrumbs.
-- [ ] Buscador interno visible en header o sidebar
-- [ ] Widget de posts relacionados al final de cada entrada
+- [x] Buscador interno visible en header o sidebar
+- [x] Widget de posts relacionados al final de cada entrada
 - [ ] Breadcrumbs activados (Rank Math los genera automáticamente)
 - [ ] Página de Contacto: Fundamental. Usa un formulario sencillo (tipo WPForms o Contact Form 7) para evitar spam.
 - [ ] Página de "Archivo" o "Mapa del Sitio": Una página donde el usuario pueda ver todos tus posts organizados por mes o por consola/género. A los retro-gamers les encanta navegar por catálogos.
@@ -87,10 +87,10 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 
 Esta fase es el puente entre el contenido bruto y la autoridad en Google.
 
-- [ ] Mapeo de Custom Fields para VideoGame: Configurar el agente (OpenCode) para que envíe los datos técnicos (name, platform, developer, genre) a los campos específicos del plugin Schema & Structured Data. Así el "verde" de Google será automático.
+- [x] Mapeo de Custom Fields para VideoGame: Configurar el agente (OpenCode) para que envíe los datos técnicos (name, platform, developer, genre) a los campos específicos del plugin Schema & Structured Data. Así el "verde" de Google será automático.
 - [ ] Inyección de Metadatos Rank Math: El agente debe generar y enviar un focus_keyword coherente, un seo_title (máx. 60 caracteres) y una meta_description (máx. 160 caracteres) que invite al clic.
 - [ ] Lógica de Enlazado Interno (Internal Linking): - Implementar una búsqueda por etiquetas o categorías en la "memoria" del agente.
-  - Regla: "Cada nuevo post debe enlazar al menos a otros 2 posts antiguos de temática similar".
+- Regla: "Cada nuevo post debe enlazar al menos a otros 2 posts antiguos de temática similar".
 - [ ] Limpieza de "Slugs" (URLs): Asegurar que el agente genere URLs limpias (ej: optimpixel.com/historia-resident-evil/ en lugar de la URL por defecto larga o con fechas).
 - [ ] Consistencia de Marca (E-E-A-T): Configurar al agente para que siempre use el mismo nombre de "Autor" y "Organización" (Optim Pixel) para que Google asocie el contenido con una entidad experta.
 - [ ] Optimización de Imágenes (Alt Text): El agente debe generar automáticamente el atributo alt de las imágenes usando la Keyword principal para mejorar el SEO de Google Imágenes.
