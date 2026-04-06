@@ -1,6 +1,9 @@
 ---
 name: generate-post-review
 description: Estructura y guía para redactar reviews de videojuegos para Optim Pixel. Usar cuando el tipo de post sea una review. Produce HTML listo para WordPress con la estructura en 6 secciones del blog.
+metadata:
+  author: optimbyte
+  version: "1.0"
 ---
 
 # Skill: Review de Videojuego

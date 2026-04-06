@@ -1,6 +1,9 @@
 ---
 name: generate-post-list
 description: Estructura y guía para redactar posts de Listas de videojuegos para Optim Pixel. Usar cuando el tipo de post sea una lista, ranking o selección de juegos. Produce HTML listo para WordPress con la estructura en 4 secciones del blog.
+metadata:
+  author: optimbyte
+  version: "1.0"
 ---
 
 # Skill: Listas

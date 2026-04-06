@@ -1,6 +1,9 @@
 ---
 name: search-game-candidates
 description: Busca juegos clásicos candidatos a convertirse en posts para Optim Pixel. Dado un conjunto de filtros opcionales (plataforma, género, época, tipo de post), genera una lista enriquecida de candidatos con contexto editorial suficiente para evaluar su potencial. Usar al generar nuevas ideas para la cola de publicación.
+metadata:
+  author: optimbyte
+  version: "1.0"
 ---
 
 # Skill: Search Game Candidates

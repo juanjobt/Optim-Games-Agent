@@ -1,6 +1,11 @@
 ---
 name: publish-wordpress
 description: Publica o actualiza posts completos en WordPress via MCP. Gestiona categorías y tags. Orquesta el flujo completo de publicación llamando a find-game-image y upload-wordpress-image para la imagen de portada. Usar cuando se necesite publicar contenido en optimpixel.com.
+compatibility: Requiere WordPress MCP configurado, acceso a internet y credenciales en .env
+metadata:
+  author: optimbyte
+  version: "1.0"
+allowed-tools: wp_create_post wp_update_post wp_get_posts wp_upload_media wp_get_categories wp_get_tags wp_create_category wp_create_tag
 ---
 
 # Skill: Publicar en WordPress

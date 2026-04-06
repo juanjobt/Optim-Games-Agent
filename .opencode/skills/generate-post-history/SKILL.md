@@ -1,6 +1,9 @@
 ---
 name: generate-post-history
 description: Estructura y guía para redactar posts de Historias sobre videojuegos para Optim Pixel. Usar cuando el tipo de post sea historia, curiosidades o trasfondo de un juego, saga o momento de la industria. Produce HTML listo para WordPress con la estructura en 5 secciones del blog.
+metadata:
+  author: optimbyte
+  version: "1.0"
 ---
 
 # Skill: Historias

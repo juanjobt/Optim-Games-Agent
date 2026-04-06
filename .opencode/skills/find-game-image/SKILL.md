@@ -1,6 +1,11 @@
 ---
 name: find-game-image
-description: Busca una imagen de portada para un videojuego usando SerpApi Google Images (fuente principal, con reintento en inglés) y RAWG como fallback estricto. Devuelve la URL pública de la mejor imagen encontrada. Usar antes de upload-wordpress-image. Requiere SERPAPI_KEY y RAWG_API_KEY en .env.
+description: Busca una imagen de portada para un videojuegos usando SerpApi Google Images (fuente principal, con reintento en inglés) y RAWG como fallback estricto. Devuelve la URL pública de la mejor imagen encontrada. Usar antes de upload-wordpress-image. Requiere SERPAPI_KEY y RAWG_API_KEY en .env.
+compatibility: Requiere acceso a internet, keys de API (SERPAPI_KEY y RAWG_API_KEY) en .env
+metadata:
+  author: optimbyte
+  version: "1.0"
+allowed-tools: webfetch
 ---
 
 # Skill: Buscar Imagen de Portada
