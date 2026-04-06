@@ -19,7 +19,7 @@ Ruta de la base de datos: `memory/blog.db` (se crea automáticamente con `init`)
 ### Inicializar la base de datos (solo la primera vez)
 
 ```bash
-python scripts/manage-internal-links.py init
+python3 scripts/manage-internal-links.py init
 ```
 
 Crea `memory/blog.db` con la tabla `internal_links`. Si ya existe, no hace nada.
@@ -27,7 +27,7 @@ Crea `memory/blog.db` con la tabla `internal_links`. Si ya existe, no hace nada.
 ### Buscar posts relacionados
 
 ```bash
-python scripts/manage-internal-links.py find-related \
+python3 scripts/manage-internal-links.py find-related \
   --wp-id 42 \
   --tags "plataforma:Super Nintendo,genero:RPG,saga:Final Fantasy,desarrolladora:Square,epoca:Años 90" \
   --limit 5
@@ -57,7 +57,7 @@ Tipos soportados y su puntuación:
 ### Registrar un internal link creado
 
 ```bash
-python scripts/manage-internal-links.py log-link \
+python3 scripts/manage-internal-links.py log-link \
   --from-wp-id "42" \
   --to-wp-id "17" \
   --score 8
@@ -68,15 +68,25 @@ Llamar una vez por cada enlace insertado en el post. El `--score` es el valor qu
 ### Obtener el contenido de un post
 
 ```bash
-python scripts/manage-internal-links.py get-post-content --wp-id 42
+python3 scripts/manage-internal-links.py get-post-content --wp-id 42
 ```
 
 Devuelve el contenido HTML actual del post (campo `content.raw` de la WP REST API). Útil para obtener el contenido antes de insertar enlaces.
 
+### Verificar enlaces de un post
+
+```bash
+python3 scripts/manage-internal-links.py get-links --wp-id 10
+```
+
+Devuelve los enlaces salientes (outgoing) y entrantes (incoming) de un post. Útil para verificar qué enlaces ya existen antes de procesar un post.
+
+**Nota**: El comando `find-related` excluye automáticamente los destinos que ya tienen enlace desde el post origen, para evitar duplicados y hacer la red más dispersiva.
+
 ### Posts que necesitan links
 
 ```bash
-python scripts/manage-internal-links.py needs-links --limit 20
+python3 scripts/manage-internal-links.py needs-links --limit 20
 ```
 
 Devuelve los posts con menos de 2 outgoing links, ordenados por fecha de publicación (más antiguos primero). Útil para el comando `/link-posts`.
@@ -84,7 +94,7 @@ Devuelve los posts con menos de 2 outgoing links, ordenados por fecha de publica
 ### Estadísticas generales
 
 ```bash
-python scripts/manage-internal-links.py stats
+python3 scripts/manage-internal-links.py stats
 ```
 
 Útil para dar feedback al usuario o para que el agente decida si vale la pena ejecutar `/link-posts`.

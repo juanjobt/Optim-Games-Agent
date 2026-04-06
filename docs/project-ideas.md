@@ -62,3 +62,10 @@ Este documento define la identidad visual y editorial de **Optim Pixel**. Cualqu
 * **Banners Hero:** Ratio 1920x600px.
 * **Composición:** Siempre dejar "espacio negativo" (oscuro) a la izquierda para superponer textos.
 * **Estilo:** Pixel Art de alta densidad o capturas de juego con *Integer Scaling* (píxeles nítidos, no borrosos).
+
+# inter linking
+Problemas observados
+1. find-related no excluye destinos ya enlazados
+La documentación de la skill dice que el comando excluye automáticamente los posts que ya tienen enlace desde el origen. Sin embargo, Chrono Trigger (wp_id:10) apareció en los resultados con score 5 aunque ya tenía un incoming link registrado desde post 86. Tuve que verificar manualmente con get-links y excluirlo.
+
+Habria que revisar la skill y crear el comando que use esa skill, ademas habria que ver si la skill no esta demasiado sobrecargada y hay que llevar carga al comando.

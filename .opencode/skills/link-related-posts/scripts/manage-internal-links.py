@@ -216,6 +216,7 @@ def cmd_find_related(args):
     """Busca posts relacionados usando la WP REST API con tags tipados."""
     env_path = PROJECT_ROOT / ".env"
     wp_base_url, auth_header = get_wp_config(str(env_path))
+    conn = get_conn()
 
     try:
         if not args.tags:
@@ -250,15 +251,27 @@ def cmd_find_related(args):
                     }
                 posts_scores[wp_id]["score"] += base_score
 
-        scored = list(posts_scores.values())
-        scored.sort(key=lambda x: (-x["score"], x["date"]))
-        results = scored[:args.limit]
+        linked_to_ids = set()
+        try:
+            existing = conn.execute(
+                "SELECT to_wp_id FROM internal_links WHERE from_wp_id = ?",
+                (args.wp_id,)
+            ).fetchall()
+            linked_to_ids = {row["to_wp_id"] for row in existing}
+        except Exception:
+            pass
+
+        filtered = [p for p in posts_scores.values() if p["wp_id"] not in linked_to_ids]
+        filtered.sort(key=lambda x: (-x["score"], x["date"]))
+        results = filtered[:args.limit]
 
         print(json.dumps({"ok": True, "related": results}, ensure_ascii=False))
 
     except Exception as e:
         print(json.dumps({"ok": False, "error": str(e)}), file=sys.stderr)
         sys.exit(1)
+    finally:
+        conn.close()
 
 
 def cmd_log_link(args):
@@ -411,6 +424,39 @@ def cmd_get_post_content(args):
         sys.exit(1)
 
 
+def cmd_get_links(args):
+    """Obtiene los enlaces salientes (outgoing) de un post."""
+    conn = get_conn()
+    try:
+        outgoing = conn.execute("""
+            SELECT to_wp_id, score, created_at
+            FROM internal_links
+            WHERE from_wp_id = ?
+            ORDER BY created_at DESC
+        """, (args.wp_id,)).fetchall()
+
+        incoming = conn.execute("""
+            SELECT from_wp_id as wp_id, score, created_at
+            FROM internal_links
+            WHERE to_wp_id = ?
+            ORDER BY created_at DESC
+        """, (args.wp_id,)).fetchall()
+
+        print(json.dumps({
+            "ok": True,
+            "wp_id": args.wp_id,
+            "outgoing": [dict(row) for row in outgoing],
+            "incoming": [dict(row) for row in incoming],
+            "outgoing_count": len(outgoing),
+            "incoming_count": len(incoming)
+        }, ensure_ascii=False))
+    except Exception as e:
+        print(json.dumps({"ok": False, "error": str(e)}), file=sys.stderr)
+        sys.exit(1)
+    finally:
+        conn.close()
+
+
 def main():
     parser = argparse.ArgumentParser(description="Gestión de internal links para Optim Pixel")
     parser.add_argument("--env", default=".env", help="Ruta al archivo .env")
@@ -434,6 +480,9 @@ def main():
     p_get = sub.add_parser("get-post-content", help="Obtiene el contenido HTML de un post")
     p_get.add_argument("--wp-id", type=int, required=True, help="ID de WordPress del post")
 
+    p_links = sub.add_parser("get-links", help="Obtiene los enlaces salientes y entrantes de un post")
+    p_links.add_argument("--wp-id", type=int, required=True, help="ID de WordPress del post")
+
     sub.add_parser("stats", help="Estadísticas generales de internal linking")
 
     args = parser.parse_args()
@@ -443,6 +492,7 @@ def main():
         "log-link":        cmd_log_link,
         "needs-links":     cmd_needs_links,
         "get-post-content": cmd_get_post_content,
+        "get-links":       cmd_get_links,
         "stats":           cmd_stats,
     }[args.command](args)
 
