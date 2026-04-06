@@ -123,7 +123,7 @@ Para cada post relacionado (máximo 2):
 Construir el HTML del enlace:
 
 ```html
-<a href="https://games.optimbyte.com/slug-del-post">Título del post</a>
+<a href="https://optimpixel.com/slug-del-post">Título del post</a>
 ```
 
 Insertar en el lugar determinado, envuelto en su propio `<p>` si es transición, o directamente en el texto si es contexto natural.
@@ -155,7 +155,7 @@ El post actual menciona "Square" en un párrafo:
 **Resultado**:
 
 ```html
-<p>Square era conocida por apuesta por historias ambiciosas, y <a href="https://games.optimbyte.com/final-fantasy-vi-square">Final Fantasy VI</a> lo demostró.</p>
+<p>Square era conocida por apuesta por historias ambiciosas, y <a href="https://optimpixel.com/final-fantasy-vi-square">Final Fantasy VI</a> lo demostró.</p>
 ```
 
 ### Ejemplo 2: Sin contexto, usar transición
@@ -167,7 +167,7 @@ El post no menciona "Konami" en ningún lugar.
 **Resultado** (penúltimo párrafo):
 
 ```html
-<p>Y si te preguntas qué pasó con <a href="https://games.optimbyte.com/historia-konami">la historia de Konami</a>, tenemos un post que te lo cuenta.</p>
+<p>Y si te preguntas qué pasó con <a href="https://optimpixel.com/historia-konami">la historia de Konami</a>, tenemos un post que te lo cuenta.</p>
 ```
 
 ---

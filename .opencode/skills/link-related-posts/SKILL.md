@@ -1,11 +1,11 @@
 ---
 name: link-related-posts
-description: Gestiona los internal links entre posts de Optim Pixel. Registra posts publicados en blog.db, busca posts relacionados por scoring de similitud y registra los links creados. Es la base de datos del sistema de internal linking. La inserción editorial de enlaces se gestiona mediante la regla internal-links-insertion.
+description: Gestiona los internal links entre posts de Optim Pixel. Busca posts relacionados via WordPress REST API, aplica scoring de similitud y registra los enlaces creados en una tabla SQLite. La inserción editorial de enlaces se gestiona mediante la regla internal-links-insertion.
 ---
 
 # Skill: Link Related Posts
 
-Esta skill gestiona la **base de datos de internal linking** y sus comandos principales. Toda la lógica de datos se delega al script `scripts/manage-internal-links.py`. El agente nunca escribe SQL directamente — solo llama al script con los argumentos correctos y procesa el JSON que devuelve.
+Esta skill gestiona los **internal links** entre posts de Optim Pixel. La información de los posts se obtiene directamente desde WordPress via REST API, y solo se guarda un log de los enlaces insertados en SQLite.
 
 **Para la inserción editorial de enlaces** (dónde y cómo insertar los links en el HTML del post), consulta la regla `internal-links-insertion.md`.
 
@@ -13,7 +13,7 @@ Esta skill gestiona la **base de datos de internal linking** y sus comandos prin
 
 ## El script y sus comandos
 
-Ruta del script: `scripts/manage-internal-links.py`  
+Ruta del script: `.opencode/skills/link-related-posts/scripts/manage-internal-links.py`
 Ruta de la base de datos: `memory/blog.db` (se crea automáticamente con `init`)
 
 ### Inicializar la base de datos (solo la primera vez)
@@ -22,55 +22,37 @@ Ruta de la base de datos: `memory/blog.db` (se crea automáticamente con `init`)
 python scripts/manage-internal-links.py init
 ```
 
-Crea `memory/blog.db` con todas las tablas e índices. Si ya existe, no hace nada. Llamar siempre antes de cualquier otra operación si no se ha usado antes.
-
-### Registrar un post publicado
-
-```bash
-python scripts/manage-internal-links.py register \
-  --wp-id "42" \
-  --title "Chrono Trigger: el caos creativo del desarrollo" \
-  --url "https://games.optimbyte.com/chrono-trigger-desarrollo" \
-  --tipo "Historias" \
-  --plataforma "Super Nintendo" \
-  --genero "RPG" \
-  --saga "Chrono" \
-  --desarrolladora "Square" \
-  --epoca "Años 90" \
-  --tags "Square,RPG,viajes en el tiempo,Años 90,desarrollo,dream team"
-```
-
-- `--wp-id` es el ID que devuelve WordPress al publicar el post (campo `id` en la respuesta de `wp_create_post`)
-- `--tags` son los mismos tags que se han asignado en WordPress, separados por comas
-- Todos los campos excepto `--wp-id`, `--title` y `--url` son opcionales pero cuantos más se pasen, mejor será el matching futuro
-- Si el `wp-id` ya existe en la base de datos, actualiza los metadatos sin duplicar
+Crea `memory/blog.db` con la tabla `internal_links`. Si ya existe, no hace nada.
 
 ### Buscar posts relacionados
 
 ```bash
 python scripts/manage-internal-links.py find-related \
-  --wp-id "42" \
-  --plataforma "Super Nintendo" \
-  --genero "RPG" \
-  --saga "Chrono" \
-  --desarrolladora "Square" \
-  --epoca "Años 90" \
-  --tags "Square,RPG,viajes en el tiempo,Años 90" \
+  --wp-id 42 \
+  --tags "plataforma:Super Nintendo,genero:RPG,saga:Final Fantasy,desarrolladora:Square,epoca:Años 90" \
   --limit 5
 ```
 
-Devuelve un JSON con los posts más relacionados ordenados por score. El score se calcula así:
+**Formato de tags**: `tipo:valor` separado por comas.
 
-| Coincidencia | Puntos |
-|---|---|
-| Misma saga | +3 |
-| Misma plataforma | +2 |
-| Mismo género | +1 |
-| Misma desarrolladora | +1 |
-| Misma época | +1 |
-| Cada tag compartido | +1 |
+Tipos soportados y su puntuación:
 
-**Usar los 2 primeros resultados** del listado como posts a enlazar, siempre que su score sea > 0. Si todos tienen score 0, no hay posts suficientemente relacionados.
+| Tipo | Puntos | Ejemplo |
+|------|--------|---------|
+| `saga` | +3 | `saga:Final Fantasy` |
+| `plataforma` | +2 | `plataforma:Super Nintendo` |
+| `genero` | +1 | `genero:RPG` |
+| `desarrolladora` | +1 | `desarrolladora:Square` |
+| `epoca` | +1 | `epoca:Años 90` |
+| (sin tipo) | +1 | `Square` (tag común) |
+
+**Cómo funciona**:
+1. El agente determina el tipo de cada tag basándose en su contexto
+2. Para cada tag, busca posts que contengan ese tag en WordPress
+3. Acumula los scores de todos los tags
+4. Devuelve los posts ordenados por score descendente
+
+**Usar los 2 primeros resultados** del listado como posts a enlazar, siempre que su score sea > 0.
 
 ### Registrar un internal link creado
 
@@ -86,7 +68,7 @@ Llamar una vez por cada enlace insertado en el post. El `--score` es el valor qu
 ### Obtener el contenido de un post
 
 ```bash
-python scripts/manage-internal-links.py get-post-content --wp-id "42"
+python scripts/manage-internal-links.py get-post-content --wp-id 42
 ```
 
 Devuelve el contenido HTML actual del post (campo `content.raw` de la WP REST API). Útil para obtener el contenido antes de insertar enlaces.
@@ -111,25 +93,23 @@ python scripts/manage-internal-links.py stats
 
 ## Flujo genérico de uso
 
-Esta skill puede usarse en dos contextos diferentes:
-
 ### Contexto A: Después de publicar un post (create-post)
 
-1. Asegurarse de que la DB existe: `python scripts/manage-internal-links.py init`
-2. Registrar el post recién publicado con `register`
-3. Buscar relacionados con `find-related`
-4. Obtener el contenido actual con `get-post-content`
-5. **Insertar los enlaces siguiendo la regla `internal-links-insertion.md`**
-6. Registrar cada link creado con `log-link`
+1. Preparar los tags con su tipo: `plataforma:X,genero:Y,saga:Z...`
+2. Buscar relacionados con `find-related`
+3. Obtener el contenido actual con `get-post-content`
+4. **Insertar los enlaces siguiendo la regla `internal-links-insertion.md`**
+5. Registrar cada link creado con `log-link`
 
 ### Contexto B: Mejorar posts existentes (/link-posts)
 
 1. Obtener lista de posts que necesitan links: `needs-links`
 2. Para cada post:
    a. Obtener el contenido actual con `get-post-content`
-   b. Buscar relacionados con `find-related`
-   c. **Insertar los enlaces siguiendo la regla `internal-links-insertion.md`**
-   d. Registrar cada link creado con `log-link`
+   b. Preparar los tags con su tipo: `plataforma:X,genero:Y,saga:Z...`
+   c. Buscar relacionados con `find-related`
+   d. **Insertar los enlaces siguiendo la regla `internal-links-insertion.md`**
+   e. Registrar cada link creado con `log-link`
 
 ---
 
@@ -139,7 +119,7 @@ Esta skill puede usarse en dos contextos diferentes:
 
 **`memory/blog.db` no existe** — Ejecutar `init` primero. El script crea el directorio `memory/` si no existe.
 
-**Post no encontrado en `find-related`** — Significa que `register` no se ejecutó correctamente antes. Verificar que el `--wp-id` es el mismo en ambas llamadas.
+**Se requiere --tags** — El comando `find-related` ahora requiere el argumento `--tags` con el formato `tipo:valor`.
 
 ---
 

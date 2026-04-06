@@ -62,4 +62,3 @@ Este documento define la identidad visual y editorial de **Optim Pixel**. Cualqu
 * **Banners Hero:** Ratio 1920x600px.
 * **Composición:** Siempre dejar "espacio negativo" (oscuro) a la izquierda para superponer textos.
 * **Estilo:** Pixel Art de alta densidad o capturas de juego con *Integer Scaling* (píxeles nítidos, no borrosos).
-
