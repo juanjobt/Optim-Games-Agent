@@ -46,7 +46,7 @@ Lo más urgente es el dominio. Busca algo como optimgames.com, retrooptim.com, o
 
 ---
 
-## 🔴 Fase 4 — SEO técnico base *(semanas 1-4 tras migración)*
+## ✅ Fase 4 — SEO técnico base *(semanas 1-4 tras migración)*
 
 Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el SEO técnico. Prioridades concretas: instalar Rank Math o Yoast para controlar metadatos, añadir schema markup de tipo VideoGame y Article en los posts (esto da rich snippets en Google), asegurarte de que el tiempo de carga está por debajo de 2.5s (usa PageSpeed Insights), y crear una red de internal links entre posts relacionados. Este último punto es especialmente potente con tu volumen de contenido.
 
@@ -56,7 +56,7 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 - [x] Configurar schema markup de tipo `VideoGame` y `Article` en cada post
 - [x] Auditar velocidad con PageSpeed Insights y llegar a <2.5s
 - [x] Revisar y limpiar estructura de URLs (sin fechas, sin IDs)
-- [ ] Crear red de internal links entre posts relacionados
+- [x] Crear red de internal links entre posts relacionados
 - [x] Definir categorías definitivas y asegurarse de que cada post está bien clasificado
 - [x] Crear y optimizar las páginas de categoría (descripción, H1, intro de texto)
 
@@ -90,7 +90,7 @@ Esta fase es el puente entre el contenido bruto y la autoridad en Google.
 - [x] Mapeo de Custom Fields para VideoGame: Configurar el agente (OpenCode) para que envíe los datos técnicos (name, platform, developer, genre) a los campos específicos del plugin Schema & Structured Data. Así el "verde" de Google será automático.
 - [ ] Inyección de Metadatos Rank Math: El agente debe generar y enviar un focus_keyword coherente, un seo_title (máx. 60 caracteres) y una meta_description (máx. 160 caracteres) que invite al clic.
 - [ ] Lógica de Enlazado Interno (Internal Linking): - Implementar una búsqueda por etiquetas o categorías en la "memoria" del agente.
-- Regla: "Cada nuevo post debe enlazar al menos a otros 2 posts antiguos de temática similar".
+- Regla: "Cada nuevo post debe enlazar al menos a otros 2 posts antiguos de temática similar". Mejorar lo que ya tenemos. Y añadir a los posts que no tienen.
 - [ ] Limpieza de "Slugs" (URLs): Asegurar que el agente genere URLs limpias (ej: optimpixel.com/historia-resident-evil/ en lugar de la URL por defecto larga o con fechas).
 - [ ] Consistencia de Marca (E-E-A-T): Configurar al agente para que siempre use el mismo nombre de "Autor" y "Organización" (Optim Pixel) para que Google asocie el contenido con una entidad experta.
 - [ ] Optimización de Imágenes (Alt Text): El agente debe generar automáticamente el atributo alt de las imágenes usando la Keyword principal para mejorar el SEO de Google Imágenes.
