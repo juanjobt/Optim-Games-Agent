@@ -29,7 +29,7 @@ Crea `memory/blog.db` con la tabla `internal_links`. Si ya existe, no hace nada.
 ```bash
 python3 scripts/manage-internal-links.py find-related \
   --wp-id 42 \
-  --tags "plataforma:Super Nintendo,genero:RPG,saga:Final Fantasy,desarrolladora:Square,epoca:Años 90" \
+  --tags "sistema:Super Nintendo,genero:RPG,saga:Final Fantasy,desarrolladora:Square,epoca:Años 90" \
   --limit 5
 ```
 
@@ -40,7 +40,7 @@ Tipos soportados y su puntuación:
 | Tipo | Puntos | Ejemplo |
 |------|--------|---------|
 | `saga` | +3 | `saga:Final Fantasy` |
-| `plataforma` | +2 | `plataforma:Super Nintendo` |
+| `sistema` | +2 | `sistema:Super Nintendo` |
 | `genero` | +1 | `genero:RPG` |
 | `desarrolladora` | +1 | `desarrolladora:Square` |
 | `epoca` | +1 | `epoca:Años 90` |
@@ -105,7 +105,7 @@ python3 scripts/manage-internal-links.py stats
 
 ### Contexto A: Después de publicar un post (create-post)
 
-1. Preparar los tags con su tipo: `plataforma:X,genero:Y,saga:Z...`
+1. Preparar los tags con su tipo: `sistema:X,genero:Y,saga:Z...`
 2. Buscar relacionados con `find-related`
 3. Obtener el contenido actual con `get-post-content`
 4. **Insertar los enlaces siguiendo la regla `internal-links-insertion.md`**
@@ -116,7 +116,7 @@ python3 scripts/manage-internal-links.py stats
 1. Obtener lista de posts que necesitan links: `needs-links`
 2. Para cada post:
    a. Obtener el contenido actual con `get-post-content`
-   b. Preparar los tags con su tipo: `plataforma:X,genero:Y,saga:Z...`
+   b. Preparar los tags con su tipo: `sistema:X,genero:Y,saga:Z...`
    c. Buscar relacionados con `find-related`
    d. **Insertar los enlaces siguiendo la regla `internal-links-insertion.md`**
    e. Registrar cada link creado con `log-link`

@@ -80,7 +80,7 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 - [ ] Sistema de Valoración (Estrellas): Deja que los usuarios voten los juegos de los que hablas. Esto genera "Rich Snippets" (estrellas en los resultados de Google) y atrae más clics.
 - [ ] Modo Oscuro (Dark Mode): En el mundo gaming es casi un estándar. Un interruptor "Luna/Sol" en el menú mejora mucho la UX.
 - [ ] Barra de Lectura: Una línea fina que avanza según haces scroll. Ayuda a retener al usuario en posts largos.
-- [ ] Fichas Técnicas: Un bloque visual al principio de cada post con: Desarrolladora, Año de lanzamiento, Plataforma y Género.
+- [ ] Fichas Técnicas: Un bloque visual al principio de cada post con: Desarrolladora, Año de lanzamiento, Sistema y Género.
 - [ ] Mejora Footer
 - [ ] Aviso Legal
 
@@ -90,13 +90,14 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 
 Esta fase es el puente entre el contenido bruto y la autoridad en Google.
 
-- [x] Mapeo de Custom Fields para VideoGame: Configurar el agente (OpenCode) para que envíe los datos técnicos (name, platform, developer, genre) a los campos específicos del plugin Schema & Structured Data. Así el "verde" de Google será automático.
+- [x] Mapeo de Custom Fields para VideoGame: Configurar el agente (OpenCode) para que envíe los datos técnicos (name, system, developer, genre) a los campos específicos del plugin Schema & Structured Data. Así el "verde" de Google será automático.
 - [ ] Inyección de Metadatos Rank Math: El agente debe generar y enviar un focus_keyword coherente, un seo_title (máx. 60 caracteres) y una meta_description (máx. 160 caracteres) que invite al clic.
 - [ ] Lógica de Enlazado Interno (Internal Linking): - Implementar una búsqueda por etiquetas o categorías en la "memoria" del agente.
 - Regla: "Cada nuevo post debe enlazar al menos a otros 2 posts antiguos de temática similar". Mejorar lo que ya tenemos. Y añadir a los posts que no tienen.
 - [ ] Limpieza de "Slugs" (URLs): Asegurar que el agente genere URLs limpias (ej: optimpixel.com/historia-resident-evil/ en lugar de la URL por defecto larga o con fechas).
 - [ ] Consistencia de Marca (E-E-A-T): Configurar al agente para que siempre use el mismo nombre de "Autor" y "Organización" (Optim Pixel) para que Google asocie el contenido con una entidad experta.
 - [ ] Optimización de Imágenes (Alt Text): El agente debe generar automáticamente el atributo alt de las imágenes usando la Keyword principal para mejorar el SEO de Google Imágenes.
+- [ ] Schema enriquecido para Listas
 
 
 
@@ -111,7 +112,7 @@ Esta fase es el puente entre el contenido bruto y la autoridad en Google.
   - Busca 2-3 screenshots del juego (fuente: MobyGames, Internet Archive, RAWG)
   - Los descarga y sube a la biblioteca de medios de WordPress
   - Los intercala en el contenido del post en posiciones naturales (después del primer párrafo, a mitad del análisis de gameplay, antes de la conclusión)
-- [ ] Añadir atributos `alt` descriptivos con el nombre del juego y la plataforma
+- [ ] Añadir atributos `alt` descriptivos con el nombre del juego y la sistema
 - [ ] Probar el workflow en un post existente antes de activarlo por defecto
 
 ---

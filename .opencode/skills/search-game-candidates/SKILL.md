@@ -103,7 +103,7 @@ Priorizar candidatos que cumplan al menos uno de estos criterios:
 - **Legado vivo** — Juegos que siguen teniendo comunidades activas, mods, speedruns o influencia directa en títulos actuales
 - **Evitar lo evidente:** No propongas el 11º artículo sobre "Por qué Super Mario World es bueno" a menos que sea en modo `seo_master` con una keyword muy específica de ayuda técnica.
 - **Contexto Histórico:** Siempre debe haber un dato que demuestre conocimiento profundo (ej: "el último juego lanzado para X consola").
-- **Variedad:** Si se piden 10, no pueden ser todos de la misma plataforma o género.
+- **Variedad:** Si se piden 10, no pueden ser todos del mismo sistema o género.
 
 ### Paso 4 — Devolver resultados
 

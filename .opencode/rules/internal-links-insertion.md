@@ -42,7 +42,7 @@ Para cada post relacionado, buscar en el texto dónde aparece naturalmente el te
 |---|---|
 | La misma desarrolladora (ej: Square) | Menciones a "Square", "la desarrolladora", etc. |
 | La misma saga (ej: Final Fantasy) | Menciones a "Final Fantasy", "la saga", etc. |
-| La misma plataforma | Menciones a la plataforma |
+| El mismo sistema | Menciones al  sistema |
 | El mismo género | Menciones al género |
 
 **El punto de inserción ideal** es donde ya se menciona el tema relacionado — el enlace aparece como continuación natural, no como elemento forzado.
@@ -113,7 +113,7 @@ for i, p in enumerate(partes):
 
 Para cada post relacionado (máximo 2):
 
-1. Extraer palabras clave del post destino (plataforma, saga, desarrolladora, género)
+1. Extraer palabras clave del post destino (sistema, saga, desarrolladora, género)
 2. Buscar en qué párrafos aparecen essas palabras
 3. Si se encuentra → marcar ese párrafo como punto de inserción
 4. Si no se encuentra → marcar penúltimo párrafo para transición

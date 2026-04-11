@@ -40,7 +40,7 @@ python3 .opencode/skills/upload-wordpress-image/scripts/wp_upload_image.py \
   --url "URL_DE_LA_IMAGEN" \
   --post-id POST_ID \
   --game "NOMBRE_DEL_JUEGO" \
-  --platform "PLATAFORMA"
+  --system "SISTEMA"
 ```
 
 El script se encarga de todo:

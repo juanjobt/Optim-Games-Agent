@@ -62,13 +62,13 @@ El agente debe mantener la tabla exactamente en este formato para garantizar leg
 ```markdown
 | # | Título | Sistema | Tipo | Estado | Última actualización | Prompt |
 |---|---|---|---|---|---|---|
-| 1 | Nombre del juego | Plataforma | Review | pendiente | YYYY-MM-DD | Prompt completo generado... |
+| 1 | Nombre del juego | Sistema | Review | pendiente | YYYY-MM-DD | Prompt completo generado... |
 ```
 
 ### Reglas de formato
 - El campo `#` es un número secuencial que nunca se reutiliza
 - El campo `Título` es el nombre completo del juego (o tema del post)
-- El campo `Sistema` es la plataforma principal (Super Nintendo, Mega Drive, PlayStation, Arcade, PC, etc.)
+- El campo `Sistema` es el sistema principal (Super Nintendo, Mega Drive, PlayStation, Arcade, PC, etc.)
 - El campo `Tipo` es Review, Historias o Listas
 - El campo `Prompt` contiene el prompt completo generado (todo el texto del formato definido en generate-post-ideas)
 - La fecha usa siempre formato `YYYY-MM-DD`

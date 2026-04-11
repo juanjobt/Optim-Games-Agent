@@ -24,7 +24,7 @@ El blog tiene una voz propia: la de alguien que sabe mucho de juegos pero no nec
 
 ### Reviews (1000-1500 palabras)
 1. **Gancho inicial** — Una frase, anécdota o pregunta que enganche desde la primera línea
-2. **Ficha técnica** — Nombre, año, plataforma, desarrolladora, género (breve y visual)
+2. **Ficha técnica** — Nombre, año, sistema, desarrolladora, género (breve y visual)
 3. **¿De qué va esto?** — Sinopsis sin spoilers relevantes
 4. **El juego en acción** — Gameplay, mecánicas, controles, dificultad
 5. **¿Cómo ha envejecido?** — Gráficos, sonido y jugabilidad valorados desde hoy
@@ -54,7 +54,7 @@ El blog tiene una voz propia: la de alguien que sabe mucho de juegos pero no nec
 
 **Tags** — Son el alma del blog. Cada post debe llevar obligatoriamente tags de cada uno de estos grupos:
 
-- **Plataforma/s:** El nombre exacto y reconocible de la plataforma. Ej: `Super Nintendo`, `PlayStation`, `Mega Drive`, `Arcade`, `PC`, `Game Boy`, `Amiga`
+- **Sistema/s:** El nombre exacto y reconocible del sistema. Ej: `Super Nintendo`, `PlayStation`, `Mega Drive`, `Arcade`, `PC`, `Game Boy`, `Amiga`
 - **Género/s:** Ej: `RPG`, `Plataformas`, `Shooter`, `Puzzle`, `Beat em up`, `Aventura gráfica`
 - **Juego y saga:** Nombre exacto del juego y de la saga si aplica. Ej: `Chrono Trigger`, `Saga Final Fantasy`, `Street Fighter II`
 - **Época:** Década o año concreto. Ej: `Años 80`, `Años 90`, `1995`, `2000s`
@@ -67,7 +67,7 @@ Sé generoso con los tags — cuantos más y más precisos, mejor. No hay límit
 ## Imágenes
 
 - Usar únicamente imágenes de dominio público o licencia libre
-- El agente busca automáticamente en la API de Wikimedia Commons usando el nombre del juego y la plataforma como términos de búsqueda
+- El agente busca automáticamente en la API de Wikimedia Commons usando el nombre del juego y el sistema como términos de búsqueda
 - Si Wikimedia Commons no devuelve resultados suficientes, se intenta con OpenGameArt como fuente secundaria
 - Las imágenes se descargan y se suben automáticamente a la biblioteca de medios de WordPress antes de asociarlas al post
 - Cada post debe tener al menos una imagen de portada (featured image)

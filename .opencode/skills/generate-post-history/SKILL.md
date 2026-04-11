@@ -21,7 +21,7 @@ Extensión objetivo: **800-1200 palabras**
 Una curiosidad impactante, una pregunta que nadie se había hecho, o una afirmación que contradice lo que el lector cree saber. Tiene que generar curiosidad inmediata.
 
 Ejemplos válidos:
-- "¿Sabías que [juego icónico] estuvo a punto de llamarse [nombre ridículo] y lanzarse en [plataforma inesperada]?"
+- "¿Sabías que [juego icónico] estuvo a punto de llamarse [nombre ridículo] y lanzarse en [sistema inesperado]?"
 - "Hay una razón muy concreta por la que [mecánica famosa] funciona exactamente como funciona, y tiene que ver con [hecho sorprendente]."
 
 ### 2. El contexto (2-3 párrafos)

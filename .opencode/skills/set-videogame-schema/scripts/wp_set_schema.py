@@ -8,7 +8,7 @@ Uso:
     python3 wp_set_schema.py \
         --post-id 123 \
         --name "Resident Evil" \
-        --platform "PlayStation, PC, Sega Saturn" \
+        --system "PlayStation, PC, Sega Saturn" \
         --genre "Survival Horror, Aventura" \
         --author-name "Capcom" \
         --description "El inicio de la saga survival horror de Capcom." \
@@ -106,8 +106,8 @@ def build_meta_payload(schema_id: str, args: argparse.Namespace) -> dict:
     field_map = {
         "name":               args.name,
         "description":        args.description,
-        "game_platform":      args.platform,
-        "operating_system":   args.platform,   # mismo valor: plataformas = OS para retro
+        "game_platform":      args.system,
+        "operating_system":   args.system,   # mismo valor: sistema = OS para retro
         "genre":              args.genre,
         "author_name":        args.author_name,
         "author_type":        args.author_type,
@@ -163,7 +163,7 @@ def main():
     parser.add_argument("--post-id",     required=True,  type=int, help="ID del post en WordPress")
     parser.add_argument("--name",        required=True,            help="Nombre del videojuego")
     parser.add_argument("--description", default="",               help="Descripción breve del juego")
-    parser.add_argument("--platform",    default="",               help="Plataformas separadas por coma (ej: 'PlayStation, PC')")
+    parser.add_argument("--system",      default="",               help="Sistemas separados por coma (ej: 'PlayStation, PC')")
     parser.add_argument("--genre",       default="",              help="Géneros separados por coma (ej: 'RPG, Aventura')")
     parser.add_argument("--author-name", default="",               help="Desarrolladora del juego")
     parser.add_argument("--author-type", default="Organization",   help="Tipo de autor: Organization o Person")
@@ -190,7 +190,7 @@ def main():
     print(f"\n=== wp_set_schema ===")
     print(f"  Post ID : {args.post_id}")
     print(f"  Juego   : {args.name}")
-    print(f"  Plataforma: {args.platform}")
+    print(f"  Sistema : {args.system}")
 
     # Actualizar schema
     set_schema(wp_base_url, auth_header, args.post_id, schema_id, args)

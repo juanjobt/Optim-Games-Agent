@@ -42,7 +42,7 @@ Genera y publica un post completo. El agente se encarga de investigar, redactar,
 
 Juego: Chrono Trigger
 Tipo de post: Historias
-Plataforma: Super Nintendo
+Sistema: Super Nintendo
 Enfoque: El caos creativo detrás del desarrollo — cómo un equipo de lujo con agenda imposible acabó haciendo una obra maestra casi por accidente
 ```
 

@@ -46,7 +46,7 @@ Recopilar de los pasos anteriores del flujo `create-post`:
 | `post_id` | Respuesta de WordPress al publicar | ID numérico del post recién creado |
 | `name` | Datos del juego | Nombre oficial del juego |
 | `description` | Post generado | Primera frase del post o la meta descripción SEO (máx. 160 caracteres) |
-| `platform` | Datos del juego | Plataformas separadas por coma. Ej: `"PlayStation, PC, Sega Saturn"` |
+| `system` | Datos del juego | Sistemas separados por coma. Ej: `"PlayStation, PC, Sega Saturn"` |
 | `genre` | Datos del juego | Géneros. Ej: `"Survival Horror, Aventura"` |
 | `author_name` | Datos del juego | Desarrolladora. Ej: `"Capcom"` |
 | `publisher` | Datos del juego | Distribuidora (puede coincidir con desarrolladora si es el mismo) |
@@ -67,7 +67,7 @@ python3 scripts/wp_set_schema.py \
   --post-id {post_id} \
   --name "{name}" \
   --description "{description}" \
-  --platform "{platform}" \
+  --system "{system}" \
   --genre "{genre}" \
   --author-name "{author_name}" \
   --publisher "{publisher}" \
@@ -88,7 +88,7 @@ Si todo va bien, el script imprime:
 === wp_set_schema ===
   Post ID : 456
   Juego   : Resident Evil
-  Plataforma: PlayStation, PC, Sega Saturn
+  Sistema : PlayStation, PC, Sega Saturn
 
   Meta fields a actualizar:
     saswp_modify_this_schema_118 = 118

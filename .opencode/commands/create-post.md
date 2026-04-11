@@ -48,7 +48,7 @@ Prompt guardado listo para usar.
 - Pide los datos que falten:
   - ¿Sobre qué juego o tema es el post?
   - ¿Qué tipo de post es? (Review / Historias / Listas)
-  - ¿En qué plataforma o plataformas?
+  - ¿En qué sistema o sistemas?
   - (Opcional) ¿Hay algún enfoque o ángulo concreto?
 
 ---
@@ -57,7 +57,7 @@ Prompt guardado listo para usar.
 
 Antes de escribir, investiga usando tu conocimiento y las herramientas disponibles:
 
-- Año de lanzamiento, desarrolladora, plataformas originales
+- Año de lanzamiento, desarrolladora, sistemas originales
 - Contexto histórico y recepción en su época
 - Datos curiosos, anécdotas de desarrollo, controversias
 - Legado e influencia en juegos posteriores
@@ -91,7 +91,7 @@ Genera estos campos antes de publicar:
 - **Título SEO** — Puede coincidir con el título o estar ligeramente optimizado
 
 **Tags obligatorios por grupos:**
-- Plataforma/s: `Super Nintendo`, `PlayStation`, `Arcade`…
+- Sistema/s: `Super Nintendo`, `PlayStation`, `Arcade`…
 - Género/s: `RPG`, `Plataformas`, `Shooter`…
 - Juego y saga: `Chrono Trigger`, `Saga Final Fantasy`…
 - Época: `Años 90`, `1995`…
@@ -149,7 +149,7 @@ Carga la skill `set-videogame-schema` y ejecútala con los datos disponibles del
 - `post_id` → ID devuelto por WordPress al publicar (Paso 7)
 - `name` → Nombre del juego (del Paso 1)
 - `description` → Meta descripción SEO generada en el Paso 4
-- `platform` → Plataforma/s del juego (del Paso 1)
+- `system` → Sistema/s del juego (del Paso 1)
 - `genre` → Géneros del juego (de los tags generados en el Paso 4)
 - `author_name` → Desarrolladora (de la investigación del Paso 2)
 - `publisher` → Distribuidora (de la investigación del Paso 2; usar el mismo valor que author_name si coincide)

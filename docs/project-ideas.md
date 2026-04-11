@@ -72,12 +72,6 @@ La documentación de la skill dice que el comando excluye automáticamente los p
 
 Habria que revisar la skill y crear el comando que use esa skill, ademas habria que ver si la skill no esta demasiado sobrecargada y hay que llevar carga al comando.
 
-# El factor diferencial
-
-Lo que realmente puede acelerar el proceso no es publicar más, sino publicar lo que nadie más cubre bien. Si el agente que tienes montado investiga huecos reales de contenido (keywords con búsquedas pero poca competencia), un solo artículo bien posicionado puede valer por veinte genéricos.
-En resumen: factible sí, pero es un proyecto de 18-24 meses de consistencia, no de 6 meses de suerte.
-
-
 # Footer
 
 Mi veredicto sobre la distribución actual:
@@ -92,3 +86,18 @@ Columna 3: Suscripción (El "Insert Coin").
 Columna 4: Contacto + Tu correo.
 
 Columna 5: Microiconos de sistemas
+
+# Tag gestion
+
+El problema con crear un tag por cada juego:
+WordPress trata los tags como taxonomías con sus propias páginas de archivo. Si tienes un tag "Chrono Trigger" pero solo un artículo lo usa, esa página de archivo existe, está casi vacía, y Google la puede ver como contenido duplicado o thin content. Eso puede perjudicarte.
+Para que un tag tenga valor SEO real necesita agrupar al menos 3-5 artículos. Si escribes sobre Chrono Trigger una sola vez, el tag no aporta nada y solo genera ruido.
+Lo que realmente funciona mejor para un blog retro:
+
+Tags por saga (como ya tienes): agrupan varios juegos y varios artículos
+Tags por género, sistema, desarrolladora, época: son los que la gente realmente busca navegando
+Tags por juego específico solo si planeas escribir varios artículos sobre ese juego (análisis, historia, curiosidades, comparativas...)
+
+Mi recomendación práctica:
+No crees el tag del juego en el momento de publicar el artículo. Créalo solo cuando vayas a publicar el segundo artículo sobre ese mismo juego. Así nunca tendrás páginas de archivo con un solo resultado.
+El SEO de un blog de nicho como el tuyo se construye mejor con autoridad temática (contenido profundo y bien enlazado internamente) que con proliferación de tags.

@@ -68,7 +68,7 @@ Muestra los resultados en este formato:
 
 ## Casos especiales
 
-**Si no hay suficientes candidatos con los filtros indicados** — Relajar filtros progresivamente (primero época, luego plataforma) e informar al usuario de qué se ha relajado y por qué.
+**Si no hay suficientes candidatos con los filtros indicados** — Relajar filtros progresivamente (primero época, luego sistema) e informar al usuario de qué se ha relajado y por qué.
 
 **Si hay más de 30 ideas pendientes en memoria** — Advertir antes de continuar: "Tienes X ideas pendientes sin usar. ¿Quieres que genere más igualmente?" y esperar confirmación.
 

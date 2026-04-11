@@ -32,7 +32,7 @@ Cada ítem debe tener:
 No todos los ítems necesitan el mismo espacio — los más importantes o controvertidos pueden tener más desarrollo.
 
 ```html
-<h3>5. Nombre del juego (Plataforma, Año)</h3>
+<h3>5. Nombre del juego (Sistema, Año)</h3>
 <p>Descripción y justificación...</p>
 ```
 

@@ -137,7 +137,7 @@ def get_post_metadata(wp_id, wp_base_url, auth_header):
         "date": post.get("date", ""),
         "tags": post.get("tags", []),
         "categories": post.get("categories", []),
-        "plataforma": meta.get("plataforma", ""),
+        "sistema": meta.get("sistema", ""),
         "genero": meta.get("genero", ""),
         "saga": meta.get("saga", ""),
         "desarrolladora": meta.get("desarrolladora", ""),
@@ -145,9 +145,9 @@ def get_post_metadata(wp_id, wp_base_url, auth_header):
     }
 
 TYPE_SCORES = {
-    "saga": 3,
-    "plataforma": 2,
-    "genero": 1,
+    "saga": 4,
+    "sistema": 3,
+    "genero": 2,
     "desarrolladora": 1,
     "epoca": 1,
     "tag_comun": 1,
@@ -188,8 +188,8 @@ def calculate_score(candidate, current):
         if candidate["saga"].lower() == current["saga"].lower():
             score += 3
 
-    if candidate.get("plataforma") and current.get("plataforma"):
-        if candidate["plataforma"].lower() == current["plataforma"].lower():
+    if candidate.get("sistema") and current.get("sistema"):
+        if candidate["sistema"].lower() == current["sistema"].lower():
             score += 2
 
     if candidate.get("genero") and current.get("genero"):
@@ -466,7 +466,7 @@ def main():
 
     p_find = sub.add_parser("find-related", help="Busca posts relacionados por scoring de similitud")
     p_find.add_argument("--wp-id", type=int, required=True)
-    p_find.add_argument("--tags", type=str, required=True, help="Tags con tipo: 'plataforma:Nintendo,genero:RPG,saga:Final Fantasy'")
+    p_find.add_argument("--tags", type=str, required=True, help="Tags con tipo: 'sistema:Nintendo,genero:RPG,saga:Final Fantasy'")
     p_find.add_argument("--limit", type=int, default=5)
 
     p_log = sub.add_parser("log-link", help="Registra un internal link creado")

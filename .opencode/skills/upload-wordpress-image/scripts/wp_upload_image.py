@@ -9,7 +9,7 @@ Uso:
         --url "https://example.com/imagen.jpg" \
         --post-id 123 \
         --game "Chrono Trigger" \
-        --platform "Super Nintendo"
+        --system "Super Nintendo"
 
 Requiere en .env:
     WP_BASE_URL=https://optimpixel.com
@@ -76,7 +76,7 @@ def upload_to_wordpress(
     auth_header: str,
     post_id: int,
     game: str,
-    platform: str,
+    system: str,
 ) -> int:
     """Sube la imagen a WordPress via REST API. Devuelve el media_id."""
 
@@ -129,7 +129,7 @@ def upload_to_wordpress(
     # Actualizar alt_text, caption y description
     patch_url = f"{wp_base_url.rstrip('/')}/wp-json/wp/v2/media/{media_id}"
     patch_data = json.dumps({
-        "alt_text": f"Portada de {game} para {platform}",
+        "alt_text": f"Portada de {game} para {system}",
         "caption": f"Portada de {game}",
         "description": f"Portada de {game}",
     }).encode("utf-8")
@@ -181,7 +181,7 @@ def main():
     parser.add_argument("--url", required=True, help="URL pública de la imagen")
     parser.add_argument("--post-id", required=True, type=int, help="ID del post destino")
     parser.add_argument("--game", required=True, help="Nombre del juego")
-    parser.add_argument("--platform", default="", help="Plataforma (ej: Super Nintendo)")
+    parser.add_argument("--system", default="", help="Sistema (ej: Super Nintendo)")
     parser.add_argument("--env", default=".env", help="Ruta al archivo .env")
     args = parser.parse_args()
 
@@ -200,7 +200,7 @@ def main():
     print(f"\n=== wp_upload_image ===")
     print(f"  Post ID   : {args.post_id}")
     print(f"  Juego     : {args.game}")
-    print(f"  Plataforma: {args.platform}")
+    print(f"  Sistema   : {args.system}")
     print(f"  Usuario WP: {wp_user}")
 
     # Descargar imagen a /tmp
@@ -212,7 +212,7 @@ def main():
 
     # Subir a WordPress
     media_id = upload_to_wordpress(
-        tmp_path, wp_base_url, auth_header, args.post_id, args.game, args.platform
+        tmp_path, wp_base_url, auth_header, args.post_id, args.game, args.system
     )
 
     # Asignar como featured image

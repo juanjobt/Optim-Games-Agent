@@ -32,7 +32,7 @@ Bloque de datos visual, no como párrafo:
 <ul class="ficha-tecnica">
   <li><strong>Título:</strong> Nombre del juego</li>
   <li><strong>Año:</strong> Año de lanzamiento</li>
-  <li><strong>Plataforma/s:</strong> Plataformas</li>
+  <li><strong>Sistema/s:</strong> Sistema</li>
   <li><strong>Desarrolladora:</strong> Nombre</li>
   <li><strong>Género:</strong> Género</li>
 </ul>
