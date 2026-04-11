@@ -64,7 +64,7 @@ Sin datos adicionales, el agente coge automáticamente la primera idea pendiente
 
 ### `/generate-post-ideas`
 
-Genera 10 prompts editoriales listos para usar con `/create-post` y los guarda en `memory/post-ideas.md` con estado `pendiente`.
+Genera prompts editoriales listos para usar con `/create-post` y los guarda en `memory/post-ideas.md` con estado `pendiente`.
 
 **Uso libre** (el agente decide con criterio editorial):
 ```
@@ -75,25 +75,16 @@ Genera 10 prompts editoriales listos para usar con `/create-post` y los guarda e
 ```
 /generate-post-ideas
 
-Plataforma: Mega Drive
-Época: Años 90
-Tipo de post: Historias
+sistema: Mega Drive
+genero: Plataformas
+epoca: Años 90
+tipo_post: Review
+cantidad: 10
+enfoque_tematico: que trate sobre sonic
+modo_estrategia: editorial
 ```
-
-**Filtros disponibles:**
-
-| Filtro | Ejemplos |
-|--------|---------|
-| `Plataforma` | Super Nintendo, Mega Drive, Arcade, PlayStation, PC, Game Boy |
-| `Género` | RPG, Plataformas, Beat em up, Puzzle, Aventura gráfica |
-| `Época` | Años 80, Años 90, 1994 |
-| `Tipo de post` | Review, Historias, Listas |
-| `Enfoque temático` | juegos infravalorados, fracasos legendarios, sagas olvidadas |
-| `Cantidad` | Por defecto: 10 |
-
-El agente evita automáticamente repetir juegos que ya estén en memoria (en cualquier estado).
-
 ---
+
 
 ## Sistema de memoria
 
