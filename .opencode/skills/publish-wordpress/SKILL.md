@@ -38,11 +38,10 @@ Flujo completo de publicación:
 
 ---
 
-## Paso 2 — Resolver IDs de categorías y tags
+## Paso 2 — Resolver ID de categoría
 
 ```
 wp_get_categories()
-wp_get_tags()
 ```
 
 **Categorías** (una sola por post):
@@ -53,25 +52,58 @@ wp_get_tags()
 | Historias | `historias` |
 | Listas | `listas` |
 
-**Tags obligatorios** por grupos:
-- **Sistema/s:** `Super Nintendo`, `PlayStation`, `Mega Drive`, `Arcade`, `PC`, `Game Boy`…
-- **Género/s:** `RPG`, `Plataformas`, `Shooter`, `Puzzle`, `Beat em up`…
-- **Saga:** nombre exacto del juego y saga si aplica
-- **Época:** `Años 80`, `Años 90`…
-- **Año:** `1995`…
-- **Desarrolladora:** `Square`, `Nintendo`, `Capcom`, `Konami`…
-- **Creador:** `Sakaguchi`, `Toriyama`, `Miyamoto`…
-- **País:**  — `España`, `Japón`, `USA`…
-- **Técnica:**  — `GoldSrc`, `Source`, `Filmation`, `Gráficos prerenderizados`…
-- **Personaje:**  — `Alucard`, `Sabreman`… 
-- **Compositor:**  — `Michiru Yamane`…
-
-Si un tag o categoría no existe, créalo antes de asignarlo:
-
+Si la categoría no existe, crearla:
 ```
-wp_create_tag(name: "Nombre", slug: "slug")
-wp_create_category(name: "Nombre", slug: "slug")
+wp_create_category(name: "Reviews", slug: "reviews")
 ```
+
+---
+
+## Paso 2.5 — Generar y validar tags del post
+
+**OBLIGATORIO** — Este paso genera los tags basándose en la información del post y los valida contra la memoria.
+
+### 2.5.1 — Recopilar información del post
+Extraer del contenido del post la siguiente información:
+- Sistema/s del juego
+- Género/s
+- Desarrolladora
+- Año de lanzamiento
+- Época (década)
+- Saga (si aplica)
+- Creador (si aplica)
+- Compositor (si aplica)
+- País (si aplica)
+- Técnica (si aplica)
+- Personaje (si aplica)
+Si lo requieres, puedes investigar en fuentes externas para completar esta información.
+
+### 2.5.2 — Consultar memoria de tags
+1. Leer `memory/tags-usables.md` (fuente de verdad)
+2. Consultar los grupos disponibles: Sistema, Género, Época, Año, Desarrolladora, Creador, Saga, País, Técnica, Personaje, Compositor
+
+### 2.5.3 — Mapear info del post a tags
+- Por cada elemento del post, buscar el tag equivalente en la memoria
+- Si hay variaciones (ej: "SNES" → "Super Nintendo", "action" → "Acción"), USAR SIEMPRE el tag de la memoria
+- **Tags obligatorios por grupo**: Sistema, Género, Época/Año, Desarrolladora
+- **Tags opcionales**: Saga, Creador, Compositor, País, Técnica, Personaje
+
+### 2.5.4 — Añadir tags nuevos
+Si un tag necesario NO existe en `memory/tags-usables.md`:
+- Añadirlo automáticamente al archivo con el grupo correspondiente y fecha actual
+- Usar el tag en el post
+
+### 2.5.5 — Resolver IDs en WordPress
+```
+wp_get_tags()  # Para ver qué tags existen ya en WP
+```
+- Si el tag existe en WP pero con otro nombre → usar el de la memoria
+- Si no existe → crear el tag usando el nombre exacto de la memoria
+
+### Resultado del paso
+Mostrar en el reporte:
+- Lista de tags usados (mapeados a la memoria)
+- Tags nuevos añadidos a `memory/tags-usables.md`
 
 ---
 
@@ -105,10 +137,13 @@ wp_create_post(
 ```
 ✅ URL del post publicado
 ✅ Categoría asignada
-✅ Tags asignados
+🏷️ Tags: [lista] (X existentes + Y nuevos añadidos a memoria)
+✅ Validación de tags: completada vs memory/tags-usables.md
 ✅ Imagen de portada: asignada correctamente / ⚠️ pendiente (fallo en script)
 🕐 Fecha y hora de publicación
 ```
+
+**Importante:** En el reporte, indicar cuántos tags nuevos se añadieron a `memory/tags-usables.md`.
 
 Si la imagen quedó pendiente, indica en el reporte que el usuario puede añadirla manualmente desde el panel de WordPress.
 
