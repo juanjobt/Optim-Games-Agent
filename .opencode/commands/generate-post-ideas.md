@@ -1,47 +1,47 @@
 ---
-description: Genera 10 prompts editoriales listos para usar con /create-post. Busca juegos clásicos con potencial editorial, evita repetir ideas ya registradas en memoria y guarda los nuevos prompts en memory/post-ideas.md con estado pendiente.
+description: Genera prompts editoriales listos para usar con /create-post. Busca candidatos con potencial editorial para el blog Optim Pixel, evita repetir ideas ya registradas en memoria y guarda los nuevos prompts en memory/post-ideas.md con estado pendiente.
 agent: content-marketer
 ---
 
-Genera una lista de 10 prompts editoriales para el blog Optim Pixel siguiendo estos pasos en orden.
+Genera una lista de prompts editoriales para el blog Optim Pixel siguiendo estos pasos en orden.
 
-El usuario puede haber especificado filtros opcionales como plataforma, género, época, tipo de post o enfoque temático. Si no especificó nada, actúa con criterio editorial propio.
+---
+
+## 🛠 Parámetros de Entrada
+
+Antes de ejecutar el Paso 1, analiza la petición del usuario para definir los valores para la skill de ese paso:
+
+- `sistema` (opcional): Consola o sistema (Ej: Super Nintendo, Mega Drive, Arcade, PC, Game Boy, PlayStation).
+- `genero` (opcional): Género del juego (Ej:  RPG, Plataformas, Beat em up, Puzzle, Aventura gráfica).
+- `epoca` (opcional): Año o década (Ej: Años 80, Años 90, o un año concreto como 1993).
+- `tipo_post` (opcional): Review / Historias / Listas.
+- `cantidad` (por defecto 10): Número de candidatos iniciales a evaluar.
+- `enfoque_tematico` (opcional): Tema o enfoque específico (Ej: juegos infravalorados, sagas olvidadas, fracasos adelantados a su tiempo)
+- `modo_estrategia` (opcional): 
+    - `editorial` (Predeterminado): Enfoque en calidad narrativa, hitos históricos y valor emocional.
+    - `seo_master`: Enfoque en volumen de búsqueda, baja competencia y detección de "huecos" en Google.
+
+---
 
 ## Paso 1 — Buscar candidatos
 
 Usa la skill `search-game-candidates` pasándole los filtros recibidos (o ninguno si no se especificaron) y una cantidad objetivo de 20 candidatos para poder seleccionar los 10 mejores.
 
-## Paso 2 — Seleccionar los 10 mejores
+---
 
-De los candidatos obtenidos, selecciona los 10 con mayor potencial editorial aplicando estos criterios de desempate:
+## Paso 2 — Generar los prompts
 
-1. **Variedad de tipos de post** — La lista final debe mezclar Reviews, Historias, y Listas
-2. **Variedad de plataformas y épocas** — No acumular todo en la misma consola o década
-3. **Potencial de engagement** — Priorizar juegos con historias que inviten al debate, la nostalgia o la sorpresa
-4. **Equilibrio conocido/desconocido** — Mezclar títulos reconocibles con alguna joya menos evidente
+Para cada uno de los candidatos devueltos por la skill `search-game-candidates`, genera un prompt completo utilizando toda la información devuelta
 
-## Paso 3 — Generar los prompts
-
-Para cada uno de los 10 juegos seleccionados, genera un prompt completo en este formato exacto:
+El formato del prompt sera:
 
 ```
-Ejecuta el comando /create-post con los siguientes datos:
-
-Juego: [nombre del juego]
-Tipo de post: [Review / Historias / Listas]
-Plataforma: [plataforma]
-Enfoque: [descripción del ángulo editorial en una frase]
+Ejecuta el comando /create-post con los siguientes datos:- Juego: [Nombre completo] - Modo aplicado: [editorial / seo_master] - Tipo de post: [Review / Historias / Listas] - sistema: [Sistema principal] - genero: [Género principal] - epoca:  [Año o década] - Ángulo Editorial: [Descripción del gancho narrativo en una frase] - Justificación: [Breve explicación de 1-2 frases sobre el valor de este candidato] - Keyword Sugerida (Solo si modo=seo_master): [Palabra clave de larga cola] - Factor de Oportunidad (Solo si modo=seo_master): [Por qué este post atraerá tráfico: competencia baja, tendencia actual, búsqueda específica no resuelta]
 ```
 
-El enfoque debe ser específico y atractivo, nunca genérico:
-- ✅ "El diseñador que creó el sistema de combate en un fin de semana porque el equipo estaba en crisis"
-- ✅ "Por qué fracasó en ventas un juego que inventó el género de los metroidvania"
-- ❌ "La historias del juego"
-- ❌ "Review completa con todo lo importante"
+## Paso 3 — Guardar en memoria
 
-## Paso 4 — Guardar en memoria
-
-Añade las 10 nuevas entradas a `memory/post-ideas.md` siguiendo el formato y las reglas definidas en la rule `post-ideas-memory`.
+Añade los prompts a `memory/post-ideas.md` siguiendo el formato y las reglas definidas en la rule `post-ideas-memory`.
 
 ## Paso 5 — Presentar resultados
 
@@ -52,13 +52,11 @@ Muestra los resultados en este formato:
 
 ---
 
-### 1. [Nombre del juego] — [Tipo de post]
-[Prompt completo listo para copiar]
+### 1. [Prompt completo listo para copiar]
 
 ---
 
-### 2. [Nombre del juego] — [Tipo de post]
-[Prompt completo listo para copiar]
+### 2. [Prompt completo listo para copiar]
 
 [...hasta 10]
 
