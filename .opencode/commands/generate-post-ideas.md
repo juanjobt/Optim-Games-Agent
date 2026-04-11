@@ -36,14 +36,16 @@ Para cada uno de los candidatos devueltos por la skill `search-game-candidates`,
 El formato del prompt sera:
 
 ```
-Ejecuta el comando /create-post con los siguientes datos:- Juego: [Nombre completo] - Modo aplicado: [editorial / seo_master] - Tipo de post: [Review / Historias / Listas] - sistema: [Sistema principal] - genero: [Género principal] - epoca:  [Año o década] - Ángulo Editorial: [Descripción del gancho narrativo en una frase] - Justificación: [Breve explicación de 1-2 frases sobre el valor de este candidato] - Keyword Sugerida (Solo si modo=seo_master): [Palabra clave de larga cola] - Factor de Oportunidad (Solo si modo=seo_master): [Por qué este post atraerá tráfico: competencia baja, tendencia actual, búsqueda específica no resuelta]
+Ejecuta el comando /create-post con los siguientes datos:- Título: [Nombre completo] - Modo aplicado: [editorial / seo_master] - Tipo de post: [Review / Historias / Listas] - sistema: [Sistema principal] - genero: [Género principal] - epoca:  [Año o década] - Ángulo Editorial: [Descripción del gancho narrativo en una frase] - Justificación: [Breve explicación de 1-2 frases sobre el valor de este candidato] - Keyword Sugerida (Solo si modo=seo_master): [Palabra clave de larga cola] - Factor de Oportunidad (Solo si modo=seo_master): [Por qué este post atraerá tráfico: competencia baja, tendencia actual, búsqueda específica no resuelta]
 ```
 
 ## Paso 3 — Guardar en memoria
 
 Añade los prompts a `memory/post-ideas.md` siguiendo el formato y las reglas definidas en la rule `post-ideas-memory`.
 
-## Paso 5 — Presentar resultados
+El campo `Prompt` en la tabla debe contener el prompt completo generado en el Paso 2 (toda la línea starting with "Ejecuta el comando /create-post...").
+
+## Paso 4 — Presentar resultados
 
 Muestra los resultados en este formato:
 

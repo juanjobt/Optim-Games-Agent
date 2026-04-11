@@ -113,7 +113,7 @@ Devolver la lista enriquecida al workflow que invocó la skill.
 
 Para cada candidato seleccionado, genera una ficha con este formato exacto:
 
-- **Juego:** [Nombre completo]
+- **Título:** [Nombre completo]
 - **Modo aplicado:** [editorial / seo_master]
 - **Tipo de post:** [Review / Historias / Listas]
 - **sistema:** [Sistema principal]
