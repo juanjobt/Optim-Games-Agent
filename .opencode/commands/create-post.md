@@ -14,14 +14,14 @@ Antes de hacer ninguna pregunta, evalúa si ya se ha proporcionado un juego o te
 **Si el usuario NO especificó nada:**
 1. Lee `memory/post-ideas.md`
 2. Localiza la primera entrada con estado `pendiente` (el `#` más bajo)
-3. Úsala como base para este post
+3. Extrae el campo `Prompt` — contiene todos los datos necesarios para este post
 4. Cambia su estado a `en uso` y actualiza `Última actualización`
 5. Informa brevemente antes de continuar:
 
 ```
 📋 Usando idea de la cola:
-Juego: [nombre] | Tipo: [tipo] | Plataforma: [plataforma]
-Enfoque: [enfoque]
+Título: [título] | Tipo: [tipo] | Sistema: [sistema]
+Prompt guardado listo para usar.
 ```
 
 **Si la memoria está vacía:** pregunta al usuario directamente.
@@ -30,12 +30,26 @@ Enfoque: [enfoque]
 
 ## Paso 1 — Recopilar información
 
-Si ya tienes datos del Paso 0 o del mensaje de invocación, úsalos sin preguntar de nuevo. Solo pregunta lo que falte:
+**Si el post viene de la memoria (campo Prompt):**
+- Parsea el campo `Prompt` de la entrada para extraer:
+  - Título
+  - Tipo de post (Review / Historias / Listas)
+  - Sistema
+  - Género
+  - Época
+  - Ángulo Editorial
+  - Justificación
+  - Keyword Sugerida (si modo=seo_master)
+  - Factor de Oportunidad (si modo=seo_master)
+- Usa estos datos directamente sin preguntar de nuevo.
+- Solo pide clarification si algo no queda claro del parseo.
 
-- ¿Sobre qué juego o tema es el post?
-- ¿Qué tipo de post es? (Review / Historias / Listas)
-- ¿En qué plataforma o plataformas?
-- (Opcional) ¿Hay algún enfoque o ángulo concreto? ¿Alguna instrucción especial?
+**Si el usuario especificó el tema directamente:**
+- Pide los datos que falten:
+  - ¿Sobre qué juego o tema es el post?
+  - ¿Qué tipo de post es? (Review / Historias / Listas)
+  - ¿En qué plataforma o plataformas?
+  - (Opcional) ¿Hay algún enfoque o ángulo concreto?
 
 ---
 
