@@ -33,7 +33,7 @@ Este archivo es gestionado automáticamente por el agente. No editar manualmente
 | 18 | Panzer Dragoon Saga | Sega Saturn | Historias | El RPG de Sega Saturn que solo se produjo en 20.000 copias y hoy vale fortunas | publicado | 2026-04-03 |
 | 19 | Ico | PlayStation 2 | Review | El juego que inspiró a toda una generación de desarrolladores indie con su minimalismo narrativo | publicado | 2026-04-03 |
 | 20 | Los 5 juegos más infravalorados de PlayStation | PlayStation | Listas | Títulos que pasaron desapercibidos en su momento pero hoy son joyas de culto | publicado | 2026-04-06 |
-| 21 | 5 máquinas recreativas que nos dejaron sin cambio | Arcade | Listas | Vamos a centrarnos en los juegos que eran un espectáculo visual y que nos "robaban" la paga semanal por su dificultad endiablada | pendiente | 2026-04-06 |
+| 21 | 5 máquinas recreativas que nos dejaron sin cambio | Arcade | Listas | Vamos a centrarnos en los juegos que eran un espectáculo visual y que nos "robaban" la paga semanal por su dificultad endiablada | publicado | 2026-04-09 |
 | 22 | El legado del Cerebro de la Bestia: 3 joyas que definieron la SNES | Super Nintendo | Listas | Centrémonos en la Super Nintendo (SNES), pero buscando esos juegos que demostraron que el "Modo 7" y los chips de apoyo eran magia negra | pendiente | 2026-04-06 |
 | 23 | Más allá de Sonic: 3 juegos de Mega Drive con auténtico 'Blast Processing' | Mega Drive | Listas | Vamos a por la Mega Drive (Genesis), destacando juegos que tenían ese "aire macarra" y oscuro que diferenciaba a SEGA | pendiente | 2026-04-06 |
 

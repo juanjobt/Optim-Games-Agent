@@ -1,4 +1,6 @@
-# Estructura y UX de la web *(paralelo a Fase 4)*
+
+
+# home mejora Estructura y UX de la web *(paralelo a Fase 4)*
 
 ¿Qué más añadir? Mis propuestas de Editor
 Si queremos que Optim Pixel destaque sobre la competencia, yo añadiría estas dos secciones estratégicas:
@@ -69,3 +71,7 @@ Problemas observados
 La documentación de la skill dice que el comando excluye automáticamente los posts que ya tienen enlace desde el origen. Sin embargo, Chrono Trigger (wp_id:10) apareció en los resultados con score 5 aunque ya tenía un incoming link registrado desde post 86. Tuve que verificar manualmente con get-links y excluirlo.
 
 Habria que revisar la skill y crear el comando que use esa skill, ademas habria que ver si la skill no esta demasiado sobrecargada y hay que llevar carga al comando.
+
+# El factor diferencial
+Lo que realmente puede acelerar el proceso no es publicar más, sino publicar lo que nadie más cubre bien. Si el agente que tienes montado investiga huecos reales de contenido (keywords con búsquedas pero poca competencia), un solo artículo bien posicionado puede valer por veinte genéricos.
+En resumen: factible sí, pero es un proyecto de 18-24 meses de consistencia, no de 6 meses de suerte.
