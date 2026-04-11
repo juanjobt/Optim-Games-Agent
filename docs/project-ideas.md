@@ -73,5 +73,22 @@ La documentación de la skill dice que el comando excluye automáticamente los p
 Habria que revisar la skill y crear el comando que use esa skill, ademas habria que ver si la skill no esta demasiado sobrecargada y hay que llevar carga al comando.
 
 # El factor diferencial
+
 Lo que realmente puede acelerar el proceso no es publicar más, sino publicar lo que nadie más cubre bien. Si el agente que tienes montado investiga huecos reales de contenido (keywords con búsquedas pero poca competencia), un solo artículo bien posicionado puede valer por veinte genéricos.
 En resumen: factible sí, pero es un proyecto de 18-24 meses de consistencia, no de 6 meses de suerte.
+
+
+# Footer
+
+Mi veredicto sobre la distribución actual:
+Para que el footer no quede descompensado (mucho peso a la izquierda con el logo y descripción, y mucho a la derecha con los menús), yo lo organizaría en 4 columnas (si tu plantilla lo permite):
+
+Columna 1: Logo + Slogan + Descripción corta.
+
+Columna 2: Menú Principal (Navegación).
+
+Columna 3: Suscripción (El "Insert Coin").
+
+Columna 4: Contacto + Tu correo.
+
+Columna 5: Microiconos de sistemas

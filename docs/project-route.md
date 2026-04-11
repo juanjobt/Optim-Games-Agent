@@ -67,8 +67,9 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 **Impacto:** Mejor experiencia = más tiempo en página = mejor señal para Google.
 
 - [ ] Home con destacados por categoría (últimas reviews, últimas curiosidades, última lista). Home con diseño de "revista" (lo veremos luego).
-- [ ] Página "Sobre el blog" (necesaria para E-E-A-T y confianza del usuario)
+- [x] Página "Sobre el blog" (necesaria para E-E-A-T y confianza del usuario)
 - [ ] Configurar el Buscador y los Breadcrumbs.
+- [x] Footer
 - [x] Buscador interno visible en header o sidebar
 - [x] Widget de posts relacionados al final de cada entrada
 - [ ] Breadcrumbs activados (Rank Math los genera automáticamente)
@@ -80,6 +81,8 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 - [ ] Modo Oscuro (Dark Mode): En el mundo gaming es casi un estándar. Un interruptor "Luna/Sol" en el menú mejora mucho la UX.
 - [ ] Barra de Lectura: Una línea fina que avanza según haces scroll. Ayuda a retener al usuario en posts largos.
 - [ ] Fichas Técnicas: Un bloque visual al principio de cada post con: Desarrolladora, Año de lanzamiento, Plataforma y Género.
+- [ ] Mejora Footer
+- [ ] Aviso Legal
 
 
 

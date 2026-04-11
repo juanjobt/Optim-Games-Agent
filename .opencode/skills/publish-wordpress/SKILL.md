@@ -1,16 +1,20 @@
 ---
 name: publish-wordpress
-description: Publica o actualiza posts completos en WordPress via MCP. Gestiona categorías y tags. Orquesta el flujo completo de publicación llamando a find-game-image y upload-wordpress-image para la imagen de portada. Usar cuando se necesite publicar contenido en optimpixel.com.
+description: Publica o actualiza posts completos en WordPress dado un título y un contenido. Gestiona categorías y tags. Orquesta el flujo completo de publicación. Usa las skills find-game-image y upload-wordpress-image para la imagen de portada. Usar cuando se necesite publicar contenido en optimpixel.com.
 compatibility: Requiere WordPress MCP configurado, acceso a internet y credenciales en .env
 metadata:
   author: optimbyte
   version: "1.0"
-allowed-tools: wp_create_post wp_update_post wp_get_posts wp_upload_media wp_get_categories wp_get_tags wp_create_category wp_create_tag
+allowed-tools: wp_create_post wp_update_post wp_get_posts wp_get_categories wp_get_tags wp_create_category wp_create_tag
 ---
 
 # Skill: Publicar en WordPress
 
-Flujo completo de publicación via MCP. No hay llamadas HTTP manuales — todo se gestiona a través de las herramientas MCP del plugin wordpress-mcp.
+Flujo completo de publicación:
+1. Las herramientas MCP se usan para publicar el post y gestionar categorías y tags.
+2. La skill `find-game-image` se usa para obtener la URL de la imagen de portada antes de publicar
+3. La skill `upload-wordpress-image` se usa para subir la imagen de portada
+4. No hay llamadas HTTP manuales
 
 ---
 
@@ -19,7 +23,6 @@ Flujo completo de publicación via MCP. No hay llamadas HTTP manuales — todo s
 - `wp_create_post` — Crea un nuevo post
 - `wp_update_post` — Actualiza un post existente por ID
 - `wp_get_posts` — Consulta posts existentes
-- `wp_upload_media` — Sube archivos a la biblioteca de medios
 - `wp_get_categories` — Lista categorías con sus IDs
 - `wp_get_tags` — Lista tags con sus IDs
 - `wp_create_category` — Crea una categoría si no existe
@@ -27,11 +30,11 @@ Flujo completo de publicación via MCP. No hay llamadas HTTP manuales — todo s
 
 ---
 
-## Paso 1 — Buscar y subir imagen de portada
+## Paso 1 — Buscar imagen de portada (pre-publicación)
 
 1. Usa la skill `find-game-image` para obtener la URL de la imagen
-2. Si devuelve una URL válida, usa `upload-wordpress-image` para subirla y obtener el `media_id`
-3. Si devuelve `null`, continúa sin `featured_media` y anota la advertencia en el reporte final
+2. Guarda la URL para el paso posterior — **NO intentes subir la imagen antes de publicar el post**
+3. Si devuelve `null`, continúa sin imagen y anota la advertencia en el reporte final
 
 ---
 
@@ -76,21 +79,32 @@ wp_create_post(
   excerpt: "Meta descripción de 150-160 caracteres",
   status: "publish",
   categories: [ID_categoria],
-  tags: [ID_tag_1, ID_tag_2, ...],
-  featured_media: MEDIA_ID
+  tags: [ID_tag_1, ID_tag_2, ...]
+  # NOTA: No incluir featured_media aquí — se asigna en Paso 4
 )
+```
 
 ---
 
-## Paso 4 — Reporte final
+## Paso 4 — Subir y asignar imagen de portada
+
+1. Usa la skill `upload-wordpress-image` que ejecuta un script Python para subir la imagen obtenida en el Paso 1 y asignarla al post recién creado. NO con herramientas MCP.
+2. Después de ejecutar el script, verifica que `featured_media` tiene valor no-zero en el post.
+
+
+---
+
+## Paso 5 — Reporte final
 
 ```
 ✅ URL del post publicado
 ✅ Categoría asignada
 ✅ Tags asignados
-✅ Imagen de portada (fuente: RAWG / Wikimedia) o ⚠️ imagen pendiente
+✅ Imagen de portada: asignada correctamente / ⚠️ pendiente (fallo en script)
 🕐 Fecha y hora de publicación
 ```
+
+Si la imagen quedó pendiente, indica en el reporte que el usuario puede añadirla manualmente desde el panel de WordPress.
 
 ---
 
