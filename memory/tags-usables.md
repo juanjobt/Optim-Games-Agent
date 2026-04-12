@@ -55,9 +55,9 @@ Este archivo es la **fuente de verdad** de los tags disponibles para posts. Todo
 | 27 | Años 70 | Época | 2026-04-11 |
 | 28 | Años 80 | Época | 2026-04-11 |
 | 29 | Años 90 | Época | 2026-04-11 |
-| 30 | Años 2000 | Épnca | 2026-04-11 |
-| 31 | Años 2010 | Épnca | 2026-04-11 |
-| 32 | Años 2020 | Épnca | 2026-04-11 |
+| 30 | Años 2000 | Época | 2026-04-11 |
+| 31 | Años 2010 | Época | 2026-04-11 |
+| 32 | Años 2020 | Época | 2026-04-11 |
 | 33 | Square | Desarrolladora | 2026-04-11 |
 | 34 | Capcom | Desarrolladora | 2026-04-11 |
 | 35 | Nintendo | Desarrolladora | 2026-04-11 |

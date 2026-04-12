@@ -7,7 +7,7 @@ Este directorio contiene los archivos de memoria del agente de Optim Pixel.
 | Archivo | Descripción |
 |---|---|
 | `post-ideas.md` | Cola editorial de ideas. Gestionado por `/generate-post-ideas` y `/create-post`. |
-| `blog.db` | Base de datos SQLite de posts publicados e internal links. Generada automáticamente por `scripts/manage-internal-links.py init`. **No editar manualmente.** |
+| `blog.db` | Base de datos SQLite de posts publicados e internal links. Generada automáticamente por `.opencode/skills/link-related-posts/scripts/manage-internal-links.py init`. **No editar manualmente.** |
 | `tags-usables.md` | Léxico controlado de tags disponibles. Validado automáticamente por `publish-wordpress` antes de cada post. |
 
 ## Sistema de Tags

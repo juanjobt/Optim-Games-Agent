@@ -7,7 +7,7 @@ description: Gestiona los internal links entre posts de Optim Pixel. Busca posts
 
 Esta skill gestiona los **internal links** entre posts de Optim Pixel. La información de los posts se obtiene directamente desde WordPress via REST API, y solo se guarda un log de los enlaces insertados en SQLite.
 
-**Para la inserción editorial de enlaces** (dónde y cómo insertar los links en el HTML del post), consulta la regla `internal-links-insertion.md`.
+**Para la inserción editorial de enlaces** (dónde y cómo insertar los links en el HTML del post), consulta la regla `internal-links-insertion`.
 
 ---
 
@@ -19,7 +19,7 @@ Ruta de la base de datos: `memory/blog.db` (se crea automáticamente con `init`)
 ### Inicializar la base de datos (solo la primera vez)
 
 ```bash
-python3 scripts/manage-internal-links.py init
+python3 .opencode/skills/link-related-posts/scripts/manage-internal-links.py init
 ```
 
 Crea `memory/blog.db` con la tabla `internal_links`. Si ya existe, no hace nada.
@@ -27,7 +27,7 @@ Crea `memory/blog.db` con la tabla `internal_links`. Si ya existe, no hace nada.
 ### Buscar posts relacionados
 
 ```bash
-python3 scripts/manage-internal-links.py find-related \
+python3 .opencode/skills/link-related-posts/scripts/manage-internal-links.py find-related \
   --wp-id 42 \
   --tags "sistema:Super Nintendo,genero:RPG,saga:Final Fantasy,desarrolladora:Square,epoca:Años 90" \
   --limit 5
@@ -57,7 +57,7 @@ Tipos soportados y su puntuación:
 ### Registrar un internal link creado
 
 ```bash
-python3 scripts/manage-internal-links.py log-link \
+python3 .opencode/skills/link-related-posts/scripts/manage-internal-links.py log-link \
   --from-wp-id "42" \
   --to-wp-id "17" \
   --score 8
@@ -68,7 +68,7 @@ Llamar una vez por cada enlace insertado en el post. El `--score` es el valor qu
 ### Obtener el contenido de un post
 
 ```bash
-python3 scripts/manage-internal-links.py get-post-content --wp-id 42
+python3 .opencode/skills/link-related-posts/scripts/manage-internal-links.py get-post-content --wp-id 42
 ```
 
 Devuelve el contenido HTML actual del post (campo `content.raw` de la WP REST API). Útil para obtener el contenido antes de insertar enlaces.
@@ -76,7 +76,7 @@ Devuelve el contenido HTML actual del post (campo `content.raw` de la WP REST AP
 ### Verificar enlaces de un post
 
 ```bash
-python3 scripts/manage-internal-links.py get-links --wp-id 10
+python3 .opencode/skills/link-related-posts/scripts/manage-internal-links.py get-links --wp-id 10
 ```
 
 Devuelve los enlaces salientes (outgoing) y entrantes (incoming) de un post. Útil para verificar qué enlaces ya existen antes de procesar un post.
@@ -86,7 +86,7 @@ Devuelve los enlaces salientes (outgoing) y entrantes (incoming) de un post. Út
 ### Posts que necesitan links
 
 ```bash
-python3 scripts/manage-internal-links.py needs-links --limit 20
+python3 .opencode/skills/link-related-posts/scripts/manage-internal-links.py needs-links --limit 20
 ```
 
 Devuelve los posts con menos de 2 outgoing links, ordenados por fecha de publicación (más antiguos primero). Útil para el comando `/link-posts`.
@@ -94,7 +94,7 @@ Devuelve los posts con menos de 2 outgoing links, ordenados por fecha de publica
 ### Estadísticas generales
 
 ```bash
-python3 scripts/manage-internal-links.py stats
+python3 .opencode/skills/link-related-posts/scripts/manage-internal-links.py stats
 ```
 
 Útil para dar feedback al usuario o para que el agente decida si vale la pena ejecutar `/link-posts`.
@@ -108,7 +108,7 @@ python3 scripts/manage-internal-links.py stats
 1. Preparar los tags con su tipo: `sistema:X,genero:Y,saga:Z...`
 2. Buscar relacionados con `find-related`
 3. Obtener el contenido actual con `get-post-content`
-4. **Insertar los enlaces siguiendo la regla `internal-links-insertion.md`**
+4. **Insertar los enlaces siguiendo la regla `internal-links-insertion`**
 5. Registrar cada link creado con `log-link`
 
 ### Contexto B: Mejorar posts existentes (/link-posts)
@@ -118,7 +118,7 @@ python3 scripts/manage-internal-links.py stats
    a. Obtener el contenido actual con `get-post-content`
    b. Preparar los tags con su tipo: `sistema:X,genero:Y,saga:Z...`
    c. Buscar relacionados con `find-related`
-   d. **Insertar los enlaces siguiendo la regla `internal-links-insertion.md`**
+   d. **Insertar los enlaces siguiendo la regla `internal-links-insertion`**
    e. Registrar cada link creado con `log-link`
 
 ---

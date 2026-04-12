@@ -67,8 +67,8 @@ Sé generoso con los tags — cuantos más y más precisos, mejor. No hay límit
 ## Imágenes
 
 - Usar únicamente imágenes de dominio público o licencia libre
-- El agente busca automáticamente en la API de Wikimedia Commons usando el nombre del juego y el sistema como términos de búsqueda
-- Si Wikimedia Commons no devuelve resultados suficientes, se intenta con OpenGameArt como fuente secundaria
+- El agente busca automáticamente en SerpApi Google Images usando el nombre del juego como término de búsqueda (con reintento en inglés si no hay resultados)
+- Si SerpApi no devuelve imágenes válidas, se intenta con RAWG como fallback estricto
 - Las imágenes se descargan y se suben automáticamente a la biblioteca de medios de WordPress antes de asociarlas al post
 - Cada post debe tener al menos una imagen de portada (featured image)
 - Si no se encuentra ninguna imagen válida en ninguna fuente, se indica en el post que la imagen está pendiente y se registra en el log del agente para revisión posterior

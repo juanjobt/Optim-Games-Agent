@@ -1,7 +1,7 @@
 ---
 name: upload-wordpress-image
 description: Sube una imagen a la biblioteca de medios de WordPress y la asigna como imagen destacada de un post. Recibe una URL pública de imagen y un ID de post. Usar después de find-game-image y antes o durante publish-wordpress.
-compatibility: Requiere Python 3, acceso a internet, credenciales WP_BASE_URL, WP_USER y WP_APP_PASSWORD en .env, y script en scripts/wp_upload_image.py
+compatibility: Requiere Python 3, acceso a internet, credenciales WP_BASE_URL, WP_USER y WP_APP_PASSWORD en .env, y script en .opencode/skills/upload-wordpress-image/scripts/wp_upload_image.py
 metadata:
   author: optimbyte
   version: "1.0"
@@ -10,15 +10,15 @@ allowed-tools: wp_get_post wp_upload_media wp_update_post
 
 # Skill: Subir Imagen a WordPress
 
-Delega la subida completa al script `scripts/wp_upload_image.py`, que gestiona la descarga, el upload multipart y la asignación de featured image sin pasar datos por el contexto del agente.
+Delega la subida completa al script `.opencode/skills/upload-wordpress-image/scripts/wp_upload_image.py`, que gestiona la descarga, el upload multipart y la asignación de featured image sin pasar datos por el contexto del agente.
 
 ---
 
 ## Requisitos
 
 - URL pública de la imagen (obtenida de `find-game-image`)
-- ID del post destino (obtenido tras `wp_create_post` o de un post existente)
-- Script `scripts/wp_upload_image.py` presente en el proyecto
+- ID del post destino (obtenido tras `wp_add_post` o de un post existente)
+- Script `.opencode/skills/upload-wordpress-image/scripts/wp_upload_image.py` presente en el proyecto
 - Credenciales `WP_BASE_URL`, `WP_USER` y `WP_APP_PASSWORD` en `.env`
 
 ---

@@ -1,7 +1,7 @@
 ---
 name: set-videogame-schema
 description: Inyecta los metadatos del schema `VideoGame` (Schema.org) del plugin **Schema & Structured Data for WP & AMP**, en un post de WordPress ya publicado usando al api de wordpress atraves de un script de python.
-compatibility: Requiere Python 3, credenciales de Application Password (WP_USER, WP_APP_PASSWORD) en .env, y script en scripts/wp_set_schema.py
+compatibility: Requiere Python 3, credenciales de Application Password (WP_USER, WP_APP_PASSWORD) en .env, y script en .opencode/skills/set-videogame-schema/scripts/wp_set_schema.py
 metadata:
   author: optimbyte
   version: "1.0"
@@ -63,7 +63,7 @@ Recopilar del Paso 4.5 (`game_data`) y del Paso 7 de `create-post`:
 Ejecutar el script con los datos recopilados:
 
 ```bash
-python3 scripts/wp_set_schema.py \
+python3 .opencode/skills/set-videogame-schema/scripts/wp_set_schema.py \
   --post-id {post_id} \
   --name "{name}" \
   --description "{description}" \
