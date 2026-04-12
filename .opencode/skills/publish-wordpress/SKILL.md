@@ -106,8 +106,41 @@ Si se requiere, se puede investigar en fuentes externas para completar informaci
 
 - Por cada elemento de game_data, buscar el tag equivalente en la memoria
 - Si hay variaciones (ej: "SNES" → "Super Nintendo", "action" → "Acción"), **USAR SIEMPRE** el tag de la memoria
-- **Tags obligatorios por grupo**: Sistema, Género, Época/Año, Desarrolladora
+- **Tags obligatorios por grupo**: Sistema, Género, Época, Año, Desarrolladora
 - **Tags opcionales**: Saga, Creador, Compositor, País, Técnica, Personaje
+
+#### Regla especial: Tags de Sistema para juegos multiplataforma
+
+Muchos juegos clásicos salieron en múltiples sistemas. No todos los sistemas tienen la misma relevancia para un juego dado. Aplicar la regla de **sistema principal + sistema secundario relevante**:
+
+**Principio:** Se añade el sistema donde el juego nació o fue más icónico obligatoriamente, y opcionalmente un segundo sistema solo si el juego tuvo impacto cultural real en esa plataforma. Nunca añadir ports menores.
+
+**Reglas:**
+
+1. **Sistema principal** (obligatorio, 1): la plataforma donde el juego se lanzó originalmente o donde es más recordado/icónico
+2. **Sistema secundario** (opcional, máximo 1): solo si el juego tuvo un impacto cultural real en esa plataforma — no añadir ports que nadie recuerda
+3. **Máximo 2 tags de sistema por post individual** (review o historia)
+4. **Para posts de lista**: máximo 1 tag de sistema por juego mencionado (el principal), se añaden los sistemas principales de los juegos destacados en la lista
+5. **Nunca añadir tags de sistema para ports irrelevantes** — si la versión de Amiga fue un port mediocre, no se añade "Amiga"
+
+**Criterio para decidir si un sistema secundario es relevante:**
+
+- ¿Esa versión se menciona frecuentemente como referencia del juego? (ej: The Last Ninja en ZX Spectrum sí se menciona)
+- ¿El juego fue exclusivo o significativamente diferente en esa plataforma?
+- ¿Esa versión tiene una base de jugadores que la recuerdan como "su" versión?
+
+Si la respuesta a todas es "no", solo se añade el sistema principal.
+
+**Ejemplos:**
+
+| Juego | Tags de sistema | Justificación |
+|---|---|---|
+| The Last Ninja | Commodore 64, ZX Spectrum | Icónico en C64, relevante en Spectrum. Los ports de Amiga/Atari ST fueron menores |
+| Chrono Trigger | Super Nintendo | Exclusivo de SNES (originalmente) |
+| Metal Gear Solid | PlayStation | Exclusivo de PS1 en su momento |
+| Lista "Top 10 de los 80" | Los sistemas principales de cada juego | 1 sistema por juego, sin repetir ports menores |
+
+**Cuando game_data.system traiga múltiples sistemas**, el agente debe filtrar aplicando esta regla antes de convertirlos a tags. No pasar el array completo sin filtrar.
 
 ### 2.4 — Añadir tags nuevos
 
