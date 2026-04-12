@@ -113,11 +113,95 @@ Los tags NO se generan aquí — la skill `publish-wordpress` se encarga de mape
 
 ---
 
-## Paso 5 — Buscar imagen de portada
+## Paso 5 — Buscar imágenes
 
-Usa la skill `find-game-image` para localizar la imagen de portada del juego.
+Usa la skill `find-game-image` para localizar todas las imágenes del post. El número y tipo depende del tipo de post:
 
-Si la skill devuelve una URL, guárdala para el Paso 7. Si devuelve `null`, continúa sin imagen.
+| Tipo de post | Portada | Imágenes de contenido |
+|-------------|---------|----------------------|
+| Review | 1 (`portada`) | 3 (`screenshot`) |
+| Historia | 1 (`portada`) | 1 `screenshot` + 1 `concepto` |
+| Lista | 1 (`portada`) | 1 `screenshot` por cada juego destacado del top 3-5 |
+
+### 5.1 — Buscar portada
+
+```
+find-game-image(game_name: "Nombre del juego", image_type: "portada", count: 1)
+```
+
+Guardar la URL de la portada para el Paso 7.
+
+### 5.2 — Buscar imágenes de contenido
+
+**Para Review e Historia:** buscar screenshots y/o concepto artístico del juego principal:
+
+```
+find-game-image(game_name: "Nombre del juego", image_type: "screenshot", count: 3)
+find-game-image(game_name: "Nombre del juego", image_type: "concepto", count: 1)
+```
+
+**Para Lista:** buscar 1 screenshot por cada juego destacado:
+
+```
+find-game-image(game_name: "Juego destacado #1", image_type: "screenshot", count: 1)
+find-game-image(game_name: "Juego destacado #2", image_type: "screenshot", count: 1)
+...
+```
+
+Los "juegos destacados" son los 3-5 más relevantes de la lista, elegidos por el agente.
+
+Guardar todas las URLs de contenido para el Paso 5.5. Si alguna búsqueda devuelve menos imágenes de las esperadas, continuar con las que haya.
+
+---
+
+## Paso 5.5 — Subir imágenes de contenido
+
+Las imágenes de contenido (screenshots y conceptos) se suben a la biblioteca de medios de WordPress **antes** de publicar el post, para obtener sus `source_url`.
+
+Para cada imagen de contenido encontrada en el Paso 5.2:
+
+```bash
+python3 .opencode/skills/upload-wordpress-image/scripts/wp_upload_image.py \
+  --url "URL_DE_LA_IMAGEN" \
+  --game "NOMBRE_DEL_JUEGO" \
+  --type screenshot \
+  --env .env
+```
+
+Para concepto artístico:
+```bash
+python3 .opencode/skills/upload-wordpress-image/scripts/wp_upload_image.py \
+  --url "URL_DE_LA_IMAGEN" \
+  --game "NOMBRE_DEL_JUEGO" \
+  --type concepto \
+  --env .env
+```
+
+**No incluir `--post-id`** — las imágenes de contenido se suben solo a la biblioteca, no se asignan como featured image.
+
+Anotar cada resultado:
+```
+media_id: 43, source_url: https://optimpixel.com/wp-content/uploads/..., type: screenshot, alt: "Captura de pantalla de Chrono Trigger"
+```
+
+### Insertar imágenes en el HTML
+
+Después de subir todas las imágenes de contenido, insertarlas en el contenido HTML usando el formato:
+
+```html
+<figure class="aligncenter">
+  <img src="https://optimpixel.com/wp-content/uploads/..." alt="Captura de pantalla de Chrono Trigger" />
+  <figcaption>Chrono Trigger en la Super Nintendo</figcaption>
+</figure>
+```
+
+El agente decide la posición exacta de cada imagen en el texto, siguiendo las indicaciones de la skill de generación correspondiente (review, historia o lista).
+
+**Reglas de inserción:**
+- Nunca insertar imágenes en el primer párrafo (el gancho)
+- Máximo 1 imagen de contenido por párrafo/sepcción
+- Insertar solo las imágenes que encajen editorialmente — no forzar
+- Si no se encontró ninguna imagen de contenido, publicar sin ellas y anotarlo
 
 ---
 
@@ -134,7 +218,8 @@ Categoría: [categoría: Reviews / Historias / Listas]
 Slug: /[slug]
 Excerpt: [excerpt]
 Datos del juego: [sistema], [género], [desarrolladora], [época]
-Imagen: [fuente y nombre] o ⚠️ Sin imagen
+Imagen de portada: [fuente y nombre] o ⚠️ Sin imagen
+Imágenes de contenido: X screenshots + Y conceptos o ⚠️ Sin imágenes de contenido
 Palabras: ~[número]
 ──────────────────────────────────────
 ¿Publicamos? (sí / revisar / cancelar)
@@ -153,14 +238,21 @@ Invocar la skill `publish-wordpress` con los siguientes inputs:
 **Inputs obligatorios:**
 - `title` — Título del post (del Paso 4)
 - `slug` — Slug del post (del Paso 4)
-- `content` — Contenido HTML completo (del Paso 3)
+- `content` — Contenido HTML completo con imágenes de contenido ya incrustadas (del Paso 3 + Paso 5.5)
 - `excerpt` — Extracto del post (del Paso 4)
 - `type` — Tipo de post: `"review"` | `"historia"` | `"lista"` (del Paso 4.5)
 - `game_data` — Objeto con datos del juego (del Paso 4.5)
 - `status` — `"publish"`
 
-**Input opcional:**
-- `image_url` — URL de la imagen de portada (del Paso 5), o `null`
+**Inputs opcionales:**
+- `image_url` — URL de la imagen de portada (del Paso 5.1), o `null`
+- `content_images` — Array de imágenes de contenido subidas (del Paso 5.5):
+  ```
+  [
+    {"media_id": 43, "source_url": "https://...", "alt": "Captura de pantalla de Chrono Trigger", "type": "screenshot", "caption": "Chrono Trigger en la Super Nintendo"},
+    ...
+  ]
+  ```
 
 La skill se encarga de:
 1. Resolver la categoría (type → slug → ID de WordPress)
@@ -210,7 +302,8 @@ Carga la skill `set-videogame-schema` y ejecútala con los datos disponibles:
 🔗 URL: [url del post]
 📂 Categoría: [categoría]
 🏷️ Tags: [lista]
-🖼️ Imagen: [fuente] o ⚠️ pendiente
+🖼️ Imagen de portada: [fuente] o ⚠️ pendiente
+🖼️ Imágenes de contenido: X screenshots + Y conceptos
 🔍 Excerpt: [excerpt]
 🗂 Schema VideoGame: ✓ configurado (schema_id: [id]) o ⚠️ pendiente — [motivo]
 🕐 Publicado: [fecha y hora]
@@ -218,4 +311,4 @@ Carga la skill `set-videogame-schema` y ejecútala con los datos disponibles:
 ─────────────────────────────
 ```
 
-Si la imagen quedó pendiente, recuérdalo para que el usuario pueda añadirla manualmente desde el panel de WordPress.
+Si la imagen de portada quedó pendiente, recuérdalo para que el usuario pueda añadirla manualmente desde el panel de WordPress. Si faltan imágenes de contenido, indicar cuántas se buscaron y cuántas se encontraron.

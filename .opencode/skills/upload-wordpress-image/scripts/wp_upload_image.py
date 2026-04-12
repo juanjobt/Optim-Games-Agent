@@ -2,14 +2,29 @@
 """
 wp_upload_image.py
 Descarga una imagen y la sube a WordPress como media.
-Devuelve el media_id para asignarlo como featured image.
+Soporta portada (asigna featured_media), screenshot y concepto artístico
+(solo sube a biblioteca de medios).
 
 Uso:
+    # Portada (asigna featured_media al post):
     python3 wp_upload_image.py \
         --url "https://example.com/imagen.jpg" \
         --post-id 123 \
         --game "Chrono Trigger" \
-        --system "Super Nintendo"
+        --system "Super Nintendo" \
+        --type portada
+
+    # Screenshot (solo biblioteca de medios):
+    python3 wp_upload_image.py \
+        --url "https://example.com/screenshot.jpg" \
+        --game "Chrono Trigger" \
+        --type screenshot
+
+    # Concepto artístico (solo biblioteca de medios):
+    python3 wp_upload_image.py \
+        --url "https://example.com/concept.jpg" \
+        --game "Chrono Trigger" \
+        --type concepto
 
 Requiere en .env:
     WP_BASE_URL=https://optimpixel.com
@@ -19,17 +34,32 @@ Requiere en .env:
 
 import argparse
 import base64
-import os
-import sys
-import urllib.request
-import urllib.error
 import json
 import mimetypes
+import os
+import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 
+IMAGE_TYPES = ("portada", "screenshot", "concepto")
+
+ALT_TEMPLATES = {
+    "portada": "Portada de {game} para {system}",
+    "portada_no_system": "Portada de {game}",
+    "screenshot": "Captura de pantalla de {game}",
+    "concepto": "{game} — concepto artistico",
+}
+
+CAPTION_TEMPLATES = {
+    "portada": "Portada de {game}",
+    "screenshot": "Captura de pantalla de {game}",
+    "concepto": "{game} — concepto artistico",
+}
+
+
 def load_env(env_path=".env"):
-    """Carga variables del .env sin dependencias externas."""
     env = {}
     try:
         with open(env_path) as f:
@@ -44,13 +74,34 @@ def load_env(env_path=".env"):
 
 
 def make_basic_auth(user: str, app_password: str) -> str:
-    """Genera el header Authorization para Basic Auth."""
     credentials = base64.b64encode(f"{user}:{app_password}".encode()).decode()
     return f"Basic {credentials}"
 
 
+def build_alt_text(image_type: str, game: str, system: str, custom_alt: str = None) -> str:
+    if custom_alt:
+        return custom_alt
+    if image_type == "portada" and system:
+        return ALT_TEMPLATES["portada"].format(game=game, system=system)
+    if image_type == "portada":
+        return ALT_TEMPLATES["portada_no_system"].format(game=game)
+    return ALT_TEMPLATES.get(image_type, ALT_TEMPLATES["screenshot"]).format(game=game)
+
+
+def build_caption(image_type: str, game: str) -> str:
+    return CAPTION_TEMPLATES.get(image_type, CAPTION_TEMPLATES["screenshot"]).format(game=game)
+
+
+def build_description(image_type: str, game: str) -> str:
+    desc_map = {
+        "portada": f"Portada de {game}",
+        "screenshot": f"Captura de pantalla de {game}",
+        "concepto": f"Concepto artistico de {game}",
+    }
+    return desc_map.get(image_type, game)
+
+
 def download_image(url: str, dest_path: str) -> str:
-    """Descarga la imagen y devuelve la ruta local."""
     print(f"  Descargando imagen: {url}")
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
@@ -63,7 +114,7 @@ def download_image(url: str, dest_path: str) -> str:
 
     size = os.path.getsize(dest_path)
     if size < 1024:
-        print(f"  ERROR: archivo descargado demasiado pequeño ({size} bytes). URL inválida.")
+        print(f"  ERROR: archivo descargado demasiado pequeno ({size} bytes). URL invalida.")
         sys.exit(1)
 
     print(f"  OK — {size / 1024:.1f} KB descargados")
@@ -76,10 +127,11 @@ def upload_to_wordpress(
     auth_header: str,
     post_id: int,
     game: str,
-    system: str,
+    image_type: str,
+    alt_text: str,
+    caption: str,
+    description: str,
 ) -> int:
-    """Sube la imagen a WordPress via REST API. Devuelve el media_id."""
-
     api_url = f"{wp_base_url.rstrip('/')}/wp-json/wp/v2/media"
 
     mime_type, _ = mimetypes.guess_type(image_path)
@@ -126,12 +178,13 @@ def upload_to_wordpress(
 
     print(f"  OK — media_id: {media_id}")
 
-    # Actualizar alt_text, caption y description
+    source_url = result.get("source_url", "")
+
     patch_url = f"{wp_base_url.rstrip('/')}/wp-json/wp/v2/media/{media_id}"
     patch_data = json.dumps({
-        "alt_text": f"Portada de {game} para {system}",
-        "caption": f"Portada de {game}",
-        "description": f"Portada de {game}",
+        "alt_text": alt_text,
+        "caption": caption,
+        "description": description,
     }).encode("utf-8")
 
     patch_req = urllib.request.Request(
@@ -145,13 +198,12 @@ def upload_to_wordpress(
             pass
         print(f"  OK — metadatos actualizados")
     except Exception as e:
-        print(f"  AVISO: no se pudieron actualizar metadatos ({e}), pero la imagen sí se subió")
+        print(f"  AVISO: no se pudieron actualizar metadatos ({e}), pero la imagen si se subio")
 
-    return media_id
+    return media_id, source_url
 
 
 def set_featured_image(wp_base_url: str, auth_header: str, post_id: int, media_id: int):
-    """Asigna el media como featured image del post."""
     api_url = f"{wp_base_url.rstrip('/')}/wp-json/wp/v2/posts/{post_id}"
 
     data = json.dumps({"featured_media": media_id}).encode("utf-8")
@@ -177,15 +229,20 @@ def set_featured_image(wp_base_url: str, auth_header: str, post_id: int, media_i
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Sube imagen de portada a WordPress")
-    parser.add_argument("--url", required=True, help="URL pública de la imagen")
-    parser.add_argument("--post-id", required=True, type=int, help="ID del post destino")
+    parser = argparse.ArgumentParser(description="Sube imagen a WordPress (portada, screenshot o concepto)")
+    parser.add_argument("--url", required=True, help="URL publica de la imagen")
+    parser.add_argument("--post-id", type=int, default=None, help="ID del post destino (obligatorio para portada)")
     parser.add_argument("--game", required=True, help="Nombre del juego")
     parser.add_argument("--system", default="", help="Sistema (ej: Super Nintendo)")
+    parser.add_argument("--type", required=True, choices=IMAGE_TYPES, help="Tipo de imagen: portada, screenshot o concepto")
+    parser.add_argument("--alt-text", default=None, help="Texto alternativo personalizado (sobreescribe el por defecto)")
     parser.add_argument("--env", default=".env", help="Ruta al archivo .env")
     args = parser.parse_args()
 
-    # Cargar credenciales
+    if args.type == "portada" and args.post_id is None:
+        print("ERROR: --post-id es obligatorio para tipo 'portada'")
+        sys.exit(1)
+
     env = load_env(args.env)
     wp_base_url = env.get("WP_BASE_URL") or os.environ.get("WP_BASE_URL")
     wp_user = env.get("WP_USER") or os.environ.get("WP_USER")
@@ -197,34 +254,53 @@ def main():
 
     auth_header = make_basic_auth(wp_user, wp_app_password)
 
+    alt_text = build_alt_text(args.type, args.game, args.system, args.alt_text)
+    caption = build_caption(args.type, args.game)
+    description = build_description(args.type, args.game)
+
     print(f"\n=== wp_upload_image ===")
-    print(f"  Post ID   : {args.post_id}")
+    print(f"  Tipo      : {args.type}")
     print(f"  Juego     : {args.game}")
-    print(f"  Sistema   : {args.system}")
+    print(f"  Sistema   : {args.system or '(no especificado)'}")
+    if args.post_id:
+        print(f"  Post ID   : {args.post_id}")
+    else:
+        print(f"  Post ID   : (sin asignar — solo biblioteca de medios)")
+    print(f"  Alt text  : {alt_text}")
     print(f"  Usuario WP: {wp_user}")
 
-    # Descargar imagen a /tmp
     ext = Path(args.url.split("?")[0]).suffix or ".jpg"
     safe_name = args.game.lower().replace(" ", "_").replace("/", "_")
-    tmp_path = f"/tmp/portada_{safe_name}{ext}"
+    prefix = args.type
+    tmp_path = f"/tmp/{prefix}_{safe_name}{ext}"
 
     download_image(args.url, tmp_path)
 
-    # Subir a WordPress
-    media_id = upload_to_wordpress(
-        tmp_path, wp_base_url, auth_header, args.post_id, args.game, args.system
+    media_id, source_url = upload_to_wordpress(
+        tmp_path, wp_base_url, auth_header,
+        args.post_id or 0, args.game, args.type,
+        alt_text, caption, description,
     )
 
-    # Asignar como featured image
-    set_featured_image(wp_base_url, auth_header, args.post_id, media_id)
+    if args.type == "portada" and args.post_id:
+        set_featured_image(wp_base_url, auth_header, args.post_id, media_id)
 
-    # Limpiar tmp
     os.remove(tmp_path)
     print(f"  Archivo temporal eliminado")
 
-    print(f"\n✓ Imagen subida y asignada correctamente")
-    print(f"  media_id: {media_id}")
-    print(f"  post_id : {args.post_id}")
+    if args.type == "portada" and args.post_id:
+        print(f"\n✓ Imagen subida y asignada correctamente")
+        print(f"  media_id   : {media_id}")
+        print(f"  post_id    : {args.post_id}")
+        print(f"  type       : {args.type}")
+        print(f"  featured   : yes")
+        print(f"  source_url : {source_url}")
+    else:
+        print(f"\n✓ Imagen subida a la biblioteca de medios")
+        print(f"  media_id   : {media_id}")
+        print(f"  type       : {args.type}")
+        print(f"  featured   : no")
+        print(f"  source_url : {source_url}")
 
 
 if __name__ == "__main__":

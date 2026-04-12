@@ -43,6 +43,17 @@ Obligatorios:
 
 Opcionales:
 - `image_url` — URL pública de la imagen de portada (obtenida previamente con find-game-image). Si es `null`, se publica sin imagen.
+- `content_images` — Array de imágenes de contenido ya subidas a WordPress (screenshots, conceptos). Cada elemento:
+  ```
+  {
+    "media_id": 42,
+    "source_url": "https://optimpixel.com/wp-content/uploads/...",
+    "alt": "Captura de pantalla de Chrono Trigger",
+    "type": "screenshot",
+    "caption": "Chrono Trigger en la Super Nintendo"
+  }
+  ```
+  Estas imágenes ya están incrustadas en el `content` HTML como `<figure>` por el comando create-post. La skill no las inserta — son solo para el reporte final.
 
 ---
 
@@ -208,12 +219,13 @@ Anotar el `post_id` devuelto y la `URL` pública del post.
 🏷️ Tags: [lista] (X existentes + Y nuevos añadidos a memoria)
 ✅ Validación de tags: completada vs memory/tags-usables.md
 🖼️ Imagen de portada: asignada correctamente / ⚠️ pendiente (sin URL)
+🖼️ Imágenes de contenido: X screenshots + Y conceptos / ⚠️ pendientes
 🕐 Fecha y hora de publicación
 ```
 
-**Importante:** En el reporte, indicar cuántos tags nuevos se añadieron a `memory/tags-usables.md`.
+**Importante:** En el reporte, indicar cuántos tags nuevos se añadieron a `memory/tags-usables.md`. Si hay imágenes de contenido, listar los `media_id` correspondientes.
 
-Si la imagen quedó pendiente, indica en el reporte que el usuario puede añadirla manualmente desde el panel de WordPress.
+Si la imagen de portada quedó pendiente, indica en el reporte que el usuario puede añadirla manualmente desde el panel de WordPress. Si faltan imágenes de contenido, indicar cuántas se buscaron y cuántas se encontraron.
 
 ---
 

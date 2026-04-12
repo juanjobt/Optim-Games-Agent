@@ -45,3 +45,30 @@ Merece más espacio que el resto: 3-5 párrafos. Explica bien por qué está ah�
 Termina con una pregunta directa al lector o una afirmación que invite a la discusión en comentarios.
 
 Ejemplo: "¿Cuál es el tuyo? Nos vemos en los comentarios, que hoy hay debate."
+
+---
+
+## Imágenes de contenido
+
+Los posts de lista pueden incluir **1 screenshot por cada juego destacado** (top 3-5 de la lista), además de la portada general. El agente decide libremente la posición exacta.
+
+**Reglas:**
+
+- Solo buscar screenshots para los juegos más relevantes de la lista (top 3-5)
+- Insertar cada screenshot justo después del `<h3>` del juego correspondiente
+- No forzar inserción donde no encaje editorialmente
+- Nunca insertar imágenes en el primer párrafo (intro con provocación)
+- Si un screenshot no se encuentra, omitirlo sin bloquear la publicación
+
+**Formato HTML:**
+
+```html
+<h3>5. Nombre del juego (Sistema, Año)</h3>
+<figure class="aligncenter">
+  <img src="https://optimpixel.com/wp-content/uploads/..." alt="Captura de pantalla de {juego}" />
+  <figcaption>{juego} en {sistema}</figcaption>
+</figure>
+<p>Descripción y justificación...</p>
+```
+
+Las imágenes se buscan con `find-game-image` tipo `screenshot` para cada juego destacado, se suben con `upload-wordpress-image` tipo `screenshot`, y se insertan en el HTML antes de publicar.

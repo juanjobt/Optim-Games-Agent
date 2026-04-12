@@ -50,3 +50,30 @@ Datos que el lector definitivamente no sabía. Preséntados de forma visual:
 ### 5. Conclusión (1-2 párrafos)
 
 Reflexión corta sobre el legado o la relevancia de lo que se ha contado. Cierre con personalidad, no con resumen de lo dicho.
+
+---
+
+## Imágenes de contenido
+
+Los posts de historias pueden incluir **1-2 imágenes** adicionales a la portada. El agente decide libremente la posición exacta, pero estas son las ubicaciones sugeridas:
+
+- Entre "El contexto" y "Desarrollo narrativo" — imagen que sitúe visualmente la época o el contexto
+- En "Datos curiosos destacados" — si hay un dato visual que merezca ilustración
+
+**Reglas:**
+
+- No forzar inserción donde no encaje editorialmente
+- Nunca insertar imágenes en el primer párrafo (el gancho)
+- Máximo 2 imágenes por historia (1 screenshot + 1 concepto, o 2 screenshots)
+- El tipo de imagen depende del tema: si la historia trata sobre desarrollo, un concepto artístico puede encajar mejor que un screenshot
+
+**Formato HTML:**
+
+```html
+<figure class="aligncenter">
+  <img src="https://optimpixel.com/wp-content/uploads/..." alt="Texto alternativo" />
+  <figcaption>Pie de foto descriptivo</figcaption>
+</figure>
+```
+
+Las imágenes se buscan con `find-game-image` tipo `screenshot` o `concepto`, se suben con `upload-wordpress-image`, y se insertan en el HTML antes de publicar.

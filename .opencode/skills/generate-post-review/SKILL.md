@@ -53,3 +53,30 @@ Valora el juego desde la perspectiva actual: gráficos, sonido, jugabilidad. Un 
 ### 6. Veredicto final (1-2 párrafos)
 
 Cierre contundente. Puede incluir puntuación sobre 10 (si se usa, que esté justificada) o una recomendación clara. Termina con una frase que quede en la memoria.
+
+---
+
+## Imágenes de contenido
+
+Las reviews pueden incluir hasta **3 screenshots** entre las secciones del texto. El agente decide libremente la posición exacta, pero estas son las ubicaciones sugeridas donde una imagen encaja de forma natural:
+
+- Entre "El juego en acción" y "¿Cómo ha envejecido?" — mostrar gameplay en acción
+- Al inicio de "¿Cómo ha envejecido?" — ilustrar cómo se ve hoy
+- Antes del "Veredicto final" — imagen memorable de cierre
+
+**Reglas:**
+
+- No forzar inserción donde no encaje editorialmente. Si solo hay 1-2 screenshots disponibles, solo insertar esos
+- Nunca insertar imágenes en el primer párrafo (el gancho)
+- Máximo 3 screenshots por review
+
+**Formato HTML:**
+
+```html
+<figure class="aligncenter">
+  <img src="https://optimpixel.com/wp-content/uploads/..." alt="Captura de pantalla de {juego}" />
+  <figcaption>{juego} en {sistema}</figcaption>
+</figure>
+```
+
+Las imágenes se buscan con `find-game-image` tipo `screenshot`, se suben con `upload-wordpress-image` tipo `screenshot`, y se insertan en el HTML antes de publicar.
