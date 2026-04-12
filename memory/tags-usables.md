@@ -103,6 +103,10 @@ Este archivo es la **fuente de verdad** de los tags disponibles para posts. Todo
 | 75 | Filmation | Técnica | 2026-04-11 |
 | 76 | Gráficos prerenderizados | Técnica | 2026-04-11 |
 | 77 | Michiru Yamane | Compositor | 2026-04-11 |
+| 78 | Commodore 64 | Sistema | 2026-04-12 |
+| 79 | Finnigan Oy | Desarrolladora | 2026-04-12 |
+| 80 | Action-Adventure | Género | 2026-04-12 |
+| 81 | Finlandia | País | 2026-04-12 |
 
 ---
 
