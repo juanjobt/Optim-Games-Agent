@@ -161,13 +161,83 @@ Si un tag necesario NO existe en `memory/tags-usables.md`:
 
 ### 2.5 — Resolver IDs en WordPress
 
+**⚠️ CRÍTICO: Los números de fila en `tags-usables.md` NO son IDs de WordPress. Son solo contadores. Nunca usarlos como IDs de tag.**
+
+Los IDs de tag en WordPress son números arbitrarios asignados por WordPress al crear cada tag. No coinciden con los números de fila de la memoria. Para obtener el ID correcto de cada tag en WordPress, seguir este proceso exacto:
+
+#### Proceso paso a paso
+
+Para **cada tag** en la lista de tags del paso 2.3 (ej: ["ZX Spectrum", "Action-Adventure", "Puzzle", "Años 80", "Commodore 64", "Ocean Software"]):
+
+**1. Derivar el slug esperado** a partir del nombre del tag:
+   - Convertir a minúsculas
+   - Reemplazar espacios por guiones
+   - Eliminar acentos (ej: "Acción" → "accion")
+   - Ejemplos:
+     - "ZX Spectrum" → `zx-spectrum`
+     - "Action-Adventure" → `action-adventure`
+     - "Años 80" → `anos-80`
+     - "Ocean Software" → `ocean-software`
+
+**2. Buscar el tag en WordPress por slug** (NO por nombre):
+
 ```
-wp_list_tags()
+wp_list_tags(slug=["zx-spectrum","action-adventure","puzzle","anos-80","commodore-64","ocean-software"])
 ```
 
-- Si el tag existe en WP con el mismo nombre → usar su ID
-- Si el tag NO existe en WP → crearlo con `wp_add_tag(name: "Nombre del tag")` y obtener su ID
-- Construir el array de IDs de tags para el Paso 3
+Esto devuelve solo los tags que coinciden por slug, con sus IDs reales de WordPress.
+
+**3. Para cada tag encontrado**, anotar su `id` (el ID real de WordPress, NO el número de fila de la memoria).
+
+**4. Para cada tag NO encontrado** (no apareció en la respuesta de `wp_list_tags`):
+
+Crear el tag en WordPress:
+```
+wp_add_tag(name: "Nombre del Tag")
+```
+
+Anotar el `id` devuelto por WordPress.
+
+**5. Construir el array final** de IDs reales de WordPress para pasar a `wp_add_post`.
+
+#### Ejemplo completo
+
+Tags necesarios: ZX Spectrum, Action-Adventure, Puzzle, Años 80, Commodore 64, Ocean Software
+
+Slugs derivados: `zx-spectrum`, `action-adventure`, `puzzle`, `anos-80`, `commodore-64`, `ocean-software`
+
+```
+wp_list_tags(slug=["zx-spectrum","action-adventure","puzzle","anos-80","commodore-64","ocean-software"])
+```
+
+Respuesta hipotética:
+- ZX Spectrum → id: 45 ✅
+- Action-Adventure → id: 80 ✅
+- Puzzle → id: 19 ✅
+- Años 80 → id: 28 ✅
+- Commodore 64 → id: 107 ✅
+- Ocean Software → no encontrado → crear con `wp_add_tag(name: "Ocean Software")` → id: 233 ✅
+
+Array final para `wp_add_post`: `tags: [45, 80, 19, 28, 107, 233]`
+
+#### Lo que NUNCA se debe hacer
+
+- ❌ Usar los números de fila de `tags-usables.md` como IDs de WordPress
+- ❌ Usar `wp_list_tags()` sin filtros y luego buscar visualmente por nombre (la respuesta puede truncarse)
+- ❌ Adivinar IDs de WordPress basándose en la posición en la memoria
+- ❌ Asumir que el tag existe en WordPress solo porque está en la memoria
+
+#### Verificación
+
+Antes de pasar al Paso 3, confirmar que cada ID del array corresponde al tag correcto mostrando la tabla:
+
+```
+| Tag          | Slug esperado    | ID en WP |
+|--------------|-------------------|----------|
+| ZX Spectrum  | zx-spectrum       | 45       |
+| Puzzle       | puzzle            | 19       |
+| ...          | ...               | ...      |
+```
 
 ### Resultado del paso
 
@@ -224,6 +294,8 @@ Anotar el `post_id` devuelto y la `URL` pública del post.
 ```
 
 **Importante:** En el reporte, indicar cuántos tags nuevos se añadieron a `memory/tags-usables.md`. Si hay imágenes de contenido, listar los `media_id` correspondientes.
+
+**Verificación de tags:** Incluir la tabla de mapeo tag → ID en WordPress para confirmar que los IDs son correctos. Si algún ID no corresponde al tag esperado, detener la publicación y corregir.
 
 Si la imagen de portada quedó pendiente, indica en el reporte que el usuario puede añadirla manualmente desde el panel de WordPress. Si faltan imágenes de contenido, indicar cuántas se buscaron y cuántas se encontraron.
 
