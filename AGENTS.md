@@ -23,7 +23,7 @@ opencode.json     # Configuración del agente y MCP
 
 | Comando | Descripción |
 |---------|-------------|
-| `/create-post` | Flujo completo: investigación → redacción → SEO → imagen → publicación |
+| `/create-post` | Flujo completo: investigación → redacción → datos de publicación → imagen → publicación |
 | `/generate-post-ideas` | Genera 10 prompts editoriales y los guarda en memoria |
 
 ## Skills
@@ -31,11 +31,13 @@ opencode.json     # Configuración del agente y MCP
 | Skill | Cuándo usarla |
 |-------|---------------|
 | `generate-post-review` | Redactar una review |
-| `generate-post-historia` | Redactar un post de historia |
-| `generate-post-lista` | Redactar un post de lista |
-| `find-game-image` | Localizar imagen de portada (RAWG → Wikimedia) |
+| `generate-post-history` | Redactar un post de historia |
+| `generate-post-list` | Redactar un post de lista |
+| `find-game-image` | Localizar imagen de portada (SerpApi → RAWG) |
 | `upload-wordpress-image` | Subir imagen a la biblioteca de medios de WordPress |
-| `publish-wordpress` | Publicar un post via MCP |
+| `publish-wordpress` | Publicar un post via MCP (gestiona categorías y tags) |
+| `set-videogame-schema` | Inyectar schema VideoGame en un post publicado |
+| `link-related-posts` | Gestionar internal links entre posts |
 | `search-game-candidates` | Buscar juegos candidatos para nuevas ideas |
 
 ## Herramientas WordPress MCP
@@ -44,11 +46,11 @@ Disponibles via `wordpress-mcp-remote`:
 
 | Herramienta | Uso |
 |-------------|-----|
-| `wp_create_post` | Crear nuevo post |
+| `wp_add_post` | Crear nuevo post |
 | `wp_update_post` | Actualizar post existente |
 | `wp_upload_media` | Subir imágenes a la biblioteca de medios |
-| `wp_get_categories` / `wp_get_tags` | Obtener IDs de taxonomías |
-| `wp_create_category` / `wp_create_tag` | Crear si no existe |
+| `wp_list_categories` / `wp_list_tags` | Obtener IDs de taxonomías |
+| `wp_add_category` / `wp_add_tag` | Crear si no existe |
 
 ### Slugs de categorías
 

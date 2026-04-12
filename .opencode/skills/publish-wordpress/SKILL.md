@@ -1,108 +1,135 @@
 ---
 name: publish-wordpress
-description: Publica o actualiza posts completos en WordPress dado un título y un contenido. Gestiona categorías y tags. Orquesta el flujo completo de publicación. Usa las skills find-game-image y upload-wordpress-image para la imagen de portada. Usar cuando se necesite publicar contenido en optimpixel.com.
+description: Publica o actualiza posts completos en WordPress dado un título y un contenido. Gestiona categorías y tags. Orquesta el flujo completo de publicación. Recibe game_data para resolver tags contra la memoria tags-usables.md. Usa la skill upload-wordpress-image para la imagen de portada si se proporciona URL. Usar cuando se necesite publicar contenido en optimpixel.com.
 compatibility: Requiere WordPress MCP configurado, acceso a internet y credenciales en .env
 metadata:
   author: optimbyte
-  version: "1.0"
-allowed-tools: wp_create_post wp_update_post wp_get_posts wp_get_categories wp_get_tags wp_create_category wp_create_tag
+  version: "2.0"
+allowed-tools: wp_add_post wp_update_post wp_get_post wp_posts_search wp_list_categories wp_list_tags wp_add_category wp_add_tag
 ---
 
 # Skill: Publicar en WordPress
 
-Flujo completo de publicación:
-1. Las herramientas MCP se usan para publicar el post y gestionar categorías y tags.
-2. La skill `find-game-image` se usa para obtener la URL de la imagen de portada antes de publicar
-3. La skill `upload-wordpress-image` se usa para subir la imagen de portada
-4. No hay llamadas HTTP manuales
+Flujo completo de publicación de un post en WordPress via MCP:
+1. Resolver la categoría a partir del tipo de post
+2. Generar y validar tags a partir de game_data contra tags-usables.md
+3. Crear el post con categoría, tags y contenido
+4. Subir y asignar la imagen de portada (si hay URL)
+
+---
+
+## Inputs
+
+Obligatorios:
+- `title` — Título del post
+- `slug` — Slug para la URL (minúsculas, guiones, sin artículos)
+- `content` — Contenido HTML completo del post
+- `excerpt` — Extracto/snippet de 150-160 caracteres
+- `type` — Tipo de post: `"review"` | `"historia"` | `"lista"`
+- `game_data` — Objeto con los datos del juego:
+  ```
+  {
+    name: "Chrono Trigger",
+    system: ["Super Nintendo"],
+    genre: ["RPG"],
+    developer: "Square",
+    publisher: "Square",
+    era: "Años 90",
+    year: 1995,
+    saga: "Saga Chrono"       // si aplica
+  }
+  ```
+- `status` — `"publish"` o `"draft"`
+
+Opcionales:
+- `image_url` — URL pública de la imagen de portada (obtenida previamente con find-game-image). Si es `null`, se publica sin imagen.
 
 ---
 
 ## Herramientas MCP disponibles
 
-- `wp_create_post` — Crea un nuevo post
+- `wp_add_post` — Crea un nuevo post (usar en vez de wp_create_post)
 - `wp_update_post` — Actualiza un post existente por ID
-- `wp_get_posts` — Consulta posts existentes
-- `wp_get_categories` — Lista categorías con sus IDs
-- `wp_get_tags` — Lista tags con sus IDs
-- `wp_create_category` — Crea una categoría si no existe
-- `wp_create_tag` — Crea un tag si no existe
+- `wp_posts_search` — Consulta posts existentes
+- `wp_list_categories` — Lista categorías con sus IDs
+- `wp_list_tags` — Lista tags con sus IDs
+- `wp_add_category` — Crea una categoría si no existe
+- `wp_add_tag` — Crea un tag si no existe
 
 ---
 
-## Paso 1 — Buscar imagen de portada (pre-publicación)
+## Paso 1 — Resolver ID de categoría
 
-1. Usa la skill `find-game-image` para obtener la URL de la imagen
-2. Guarda la URL para el paso posterior — **NO intentes subir la imagen antes de publicar el post**
-3. Si devuelve `null`, continúa sin imagen y anota la advertencia en el reporte final
+```
+wp_list_categories()
+```
+
+**Mapeo de tipos a categorías** (una sola por post):
+
+| type | Slug de categoría | Nombre |
+|---|---|---|
+| `review` | `reviews` | Reviews |
+| `historia` | `historias` | Historias |
+| `lista` | `listas` | Listas |
+
+Buscar la categoría cuyo slug coincida con el mapeo. Si no existe, crearla:
+```
+wp_add_category(name: "Reviews", slug: "reviews")
+```
+
+Anotar el `ID` de la categoría para el Paso 3.
 
 ---
 
-## Paso 2 — Resolver ID de categoría
+## Paso 2 — Generar y validar tags del post
 
-```
-wp_get_categories()
-```
+**OBLIGATORIO** — Este paso genera los tags basándose en `game_data` y los valida contra la memoria.
 
-**Categorías** (una sola por post):
+### 2.1 — Extraer información de game_data
 
-| Tipo de post | Slug |
-|---|---|
-| Review | `reviews` |
-| Historias | `historias` |
-| Listas | `listas` |
+Del objeto `game_data` recibido como input, extraer:
+- `system` → Sistema/s del juego (array)
+- `genre` → Género/s (array)
+- `developer` → Desarrolladora
+- `era` → Época (década)
+- `year` → Año de lanzamiento (si aplica)
+- `saga` → Saga (si aplica)
 
-Si la categoría no existe, crearla:
-```
-wp_create_category(name: "Reviews", slug: "reviews")
-```
+Si se requiere, se puede investigar en fuentes externas para completar información adicional (creador, compositor, país, técnica, personaje).
 
----
+### 2.2 — Consultar memoria de tags
 
-## Paso 2.5 — Generar y validar tags del post
-
-**OBLIGATORIO** — Este paso genera los tags basándose en la información del post y los valida contra la memoria.
-
-### 2.5.1 — Recopilar información del post
-Extraer del contenido del post la siguiente información:
-- Sistema/s del juego
-- Género/s
-- Desarrolladora
-- Año de lanzamiento
-- Época (década)
-- Saga (si aplica)
-- Creador (si aplica)
-- Compositor (si aplica)
-- País (si aplica)
-- Técnica (si aplica)
-- Personaje (si aplica)
-Si lo requieres, puedes investigar en fuentes externas para completar esta información.
-
-### 2.5.2 — Consultar memoria de tags
 1. Leer `memory/tags-usables.md` (fuente de verdad)
 2. Consultar los grupos disponibles: Sistema, Género, Época, Año, Desarrolladora, Creador, Saga, País, Técnica, Personaje, Compositor
 
-### 2.5.3 — Mapear info del post a tags
-- Por cada elemento del post, buscar el tag equivalente en la memoria
-- Si hay variaciones (ej: "SNES" → "Super Nintendo", "action" → "Acción"), USAR SIEMPRE el tag de la memoria
+### 2.3 — Mapear game_data a tags
+
+- Por cada elemento de game_data, buscar el tag equivalente en la memoria
+- Si hay variaciones (ej: "SNES" → "Super Nintendo", "action" → "Acción"), **USAR SIEMPRE** el tag de la memoria
 - **Tags obligatorios por grupo**: Sistema, Género, Época/Año, Desarrolladora
 - **Tags opcionales**: Saga, Creador, Compositor, País, Técnica, Personaje
 
-### 2.5.4 — Añadir tags nuevos
+### 2.4 — Añadir tags nuevos
+
 Si un tag necesario NO existe en `memory/tags-usables.md`:
 - Añadirlo automáticamente al archivo con el grupo correspondiente y fecha actual
 - Usar el tag en el post
 
-### 2.5.5 — Resolver IDs en WordPress
+### 2.5 — Resolver IDs en WordPress
+
 ```
-wp_get_tags()  # Para ver qué tags existen ya en WP
+wp_list_tags()
 ```
-- Si el tag existe en WP pero con otro nombre → usar el de la memoria
-- Si no existe → crear el tag usando el nombre exacto de la memoria
+
+- Si el tag existe en WP con el mismo nombre → usar su ID
+- Si el tag NO existe en WP → crearlo con `wp_add_tag(name: "Nombre del tag")` y obtener su ID
+- Construir el array de IDs de tags para el Paso 3
 
 ### Resultado del paso
-Mostrar en el reporte:
-- Lista de tags usados (mapeados a la memoria)
+
+Anotar:
+- Lista de tags usados (nombres, mapeados a la memoria)
+- IDs de tags en WordPress
 - Tags nuevos añadidos a `memory/tags-usables.md`
 
 ---
@@ -110,11 +137,11 @@ Mostrar en el reporte:
 ## Paso 3 — Publicar el post
 
 ```
-wp_create_post(
+wp_add_post(
   title: "Título del post",
   slug: "slug-del-post",
   content: "<p>Contenido completo en HTML...</p>",
-  excerpt: "Meta descripción de 150-160 caracteres",
+  excerpt: "Extracto de 150-160 caracteres",
   status: "publish",
   categories: [ID_categoria],
   tags: [ID_tag_1, ID_tag_2, ...]
@@ -122,13 +149,21 @@ wp_create_post(
 )
 ```
 
+Anotar el `post_id` devuelto y la `URL` pública del post.
+
 ---
 
 ## Paso 4 — Subir y asignar imagen de portada
 
-1. Usa la skill `upload-wordpress-image` que ejecuta un script Python para subir la imagen obtenida en el Paso 1 y asignarla al post recién creado. NO con herramientas MCP.
-2. Después de ejecutar el script, verifica que `featured_media` tiene valor no-zero en el post.
+**Si `image_url` no es null:**
+1. Usa la skill `upload-wordpress-image` para subir la imagen y asignarla al post recién creado
+2. Ejecuta el script con la URL y el `post_id`
+3. Verifica que `featured_media` tiene valor no-zero en el post
 
+**Si `image_url` es null:**
+- Continúa sin imagen y anota la advertencia en el reporte final
+
+**Importante:** La skill `upload-wordpress-image` ejecuta un script Python que gestiona la descarga, subida multipart y asignación de featured image. No usar herramientas MCP para la subida de imagen.
 
 ---
 
@@ -136,10 +171,10 @@ wp_create_post(
 
 ```
 ✅ URL del post publicado
-✅ Categoría asignada
+📂 Categoría asignada
 🏷️ Tags: [lista] (X existentes + Y nuevos añadidos a memoria)
 ✅ Validación de tags: completada vs memory/tags-usables.md
-✅ Imagen de portada: asignada correctamente / ⚠️ pendiente (fallo en script)
+🖼️ Imagen de portada: asignada correctamente / ⚠️ pendiente (sin URL)
 🕐 Fecha y hora de publicación
 ```
 
@@ -151,8 +186,8 @@ Si la imagen quedó pendiente, indica en el reporte que el usuario puede añadir
 
 ## Manejo de errores comunes
 
+**Categoría o tag no encontrado** — Usar `wp_add_category` o `wp_add_tag` antes de asignar.
+
 **Token JWT expirado** — Duración máxima 24h. Regenerar en **Ajustes → WordPress MCP → Authentication Tokens** y actualizar `.env`.
 
 **Herramienta no disponible** — Verificar que *Enable Create Tools* y *Enable Update Tools* están activos en **Ajustes → WordPress MCP → General Settings**.
-
-**Categoría o tag no encontrado** — Usar `wp_create_category` o `wp_create_tag` antes de asignar.

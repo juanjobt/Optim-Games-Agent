@@ -57,7 +57,7 @@ Prompt guardado listo para usar.
 
 Antes de escribir, investiga usando tu conocimiento y las herramientas disponibles:
 
-- Año de lanzamiento, desarrolladora, sistemas originales
+- Año de lanzamiento, desarrolladora, distribuidora, sistemas originales
 - Contexto histórico y recepción en su época
 - Datos curiosos, anécdotas de desarrollo, controversias
 - Legado e influencia en juegos posteriores
@@ -72,36 +72,52 @@ No inventes datos — si no estás seguro de algo, omítelo o indícalo claramen
 Según el tipo de post, carga la skill correspondiente y sigue su estructura:
 
 - Review → skill `generate-post-review`
-- Historias → skill `generate-post-historia`
-- Listas → skill `generate-post-lista`
+- Historias → skill `generate-post-history`
+- Listas → skill `generate-post-list`
 
 Escribe el post completo en HTML limpio siguiendo la estructura de la skill y la voz del blog definida en `blog-identity`.
 
 ---
 
-## Paso 4 — Preparar metadatos SEO
+## Paso 4 — Preparar datos de publicación
 
-Genera estos campos antes de publicar:
+Genera estos campos que se usarán al publicar en WordPress:
 
 - **Título** — Atractivo, con la keyword principal incluida de forma natural
-- **Slug** — Minúsculas, con guiones, sin artículos (ej: `review-chrono-trigger-snes`)
-- **Keyword principal** — Una sola, específica, con intención de búsqueda clara
-- **Keywords secundarias** — Entre 2 y 4 relacionadas
-- **Meta descripción** — 150-160 caracteres, incluye la keyword principal
-- **Título SEO** — Puede coincidir con el título o estar ligeramente optimizado
+- **Slug** — Minúsculas, con guiones, sin artículos innecesarios (ej: `review-chrono-trigger-snes`)
+- **Excerpt** — 150-160 caracteres, será el snippet en resultados de búsqueda. Incluye la keyword principal de forma natural
 
-**Tags obligatorios por grupos:**
-- Sistema/s: `Super Nintendo`, `PlayStation`, `Arcade`…
-- Género/s: `RPG`, `Plataformas`, `Shooter`…
-- Juego y saga: `Chrono Trigger`, `Saga Final Fantasy`…
-- Época: `Años 90`, `1995`…
-- Desarrolladora: `Square`, `Nintendo`, `Capcom`…
+**Nota sobre SEO:** La keyword principal se usa como guía interna para redactar un buen título y excerpt, pero no se almacena como campo separado en WordPress. El título del post funciona como título SEO.
+
+---
+
+## Paso 4.5 — Consolidar game_data
+
+Reunir en un solo objeto los datos del juego recopilados en los Pasos 0-2. Este objeto se pasará a la skill `publish-wordpress` para que resuelva tags automáticamente:
+
+```
+game_data = {
+  name: "Chrono Trigger",
+  type: "review",            // review | historia | lista
+  system: ["Super Nintendo"],
+  genre: ["RPG"],
+  developer: "Square",
+  publisher: "Square",
+  era: "Años 90",
+  year: 1995,
+  saga: "Saga Chrono"        // si aplica, omitir si no
+}
+```
+
+Los tags NO se generan aquí — la skill `publish-wordpress` se encarga de mapear game_data a tags usando `memory/tags-usables.md`.
 
 ---
 
 ## Paso 5 — Buscar imagen de portada
 
 Usa la skill `find-game-image` para localizar la imagen de portada del juego.
+
+Si la skill devuelve una URL, guárdala para el Paso 7. Si devuelve `null`, continúa sin imagen.
 
 ---
 
@@ -114,11 +130,10 @@ Muestra al usuario este resumen y espera confirmación:
 ──────────────────────────────────────
 Título: [título]
 Tipo: [tipo de post]
-Categoría: [categoría]
+Categoría: [categoría: Reviews / Historias / Listas]
 Slug: /[slug]
-Keyword principal: [keyword]
-Meta descripción: [meta]
-Tags: [lista de tags]
+Excerpt: [excerpt]
+Datos del juego: [sistema], [género], [desarrolladora], [época]
 Imagen: [fuente y nombre] o ⚠️ Sin imagen
 Palabras: ~[número]
 ──────────────────────────────────────
@@ -133,26 +148,43 @@ Palabras: ~[número]
 
 ## Paso 7 — Publicar en WordPress
 
-1. Si se encontró imagen en el Paso 5, usa la skill `upload-wordpress-image` para subirla y obtener el `media_id`
-2. Usa la skill `publish-wordpress` para resolver categorías y tags, publicar el post con todos los metadatos SEO y confirmar que está accesible
+Invocar la skill `publish-wordpress` con los siguientes inputs:
+
+**Inputs obligatorios:**
+- `title` — Título del post (del Paso 4)
+- `slug` — Slug del post (del Paso 4)
+- `content` — Contenido HTML completo (del Paso 3)
+- `excerpt` — Extracto del post (del Paso 4)
+- `type` — Tipo de post: `"review"` | `"historia"` | `"lista"` (del Paso 4.5)
+- `game_data` — Objeto con datos del juego (del Paso 4.5)
+- `status` — `"publish"`
+
+**Input opcional:**
+- `image_url` — URL de la imagen de portada (del Paso 5), o `null`
+
+La skill se encarga de:
+1. Resolver la categoría (type → slug → ID de WordPress)
+2. Generar y validar tags a partir de game_data contra `memory/tags-usables.md`
+3. Crear el post con todos los metadatos
+4. Subir y asignar la imagen de portada (si hay URL)
 
 ---
- 
+
 ## Paso 7.5 — Inyectar schema VideoGame
- 
+
 **Solo para posts de tipo Review o Historia sobre un juego concreto. Omitir para Listas y rankings.**
- 
+
 Este paso es **no bloqueante**: si falla, continúa al Paso 8 y reporta el error al final.
- 
-Carga la skill `set-videogame-schema` y ejecútala con los datos disponibles del post:
- 
+
+Carga la skill `set-videogame-schema` y ejecútala con los datos disponibles:
+
 - `post_id` → ID devuelto por WordPress al publicar (Paso 7)
-- `name` → Nombre del juego (del Paso 1)
-- `description` → Meta descripción SEO generada en el Paso 4
-- `system` → Sistema/s del juego (del Paso 1)
-- `genre` → Géneros del juego (de los tags generados en el Paso 4)
-- `author_name` → Desarrolladora (de la investigación del Paso 2)
-- `publisher` → Distribuidora (de la investigación del Paso 2; usar el mismo valor que author_name si coincide)
+- `name` → game_data.name (del Paso 4.5)
+- `description` → excerpt (del Paso 4)
+- `system` → game_data.system, separados por coma (del Paso 4.5)
+- `genre` → game_data.genre, separados por coma (del Paso 4.5)
+- `author_name` → game_data.developer (del Paso 4.5)
+- `publisher` → game_data.publisher (del Paso 4.5; usar el mismo valor que author_name si coincide)
 - `image` → URL de la imagen de portada subida en el Paso 7
 - `url` → URL pública del post devuelta por WordPress
 - `rating` → Solo si el post es una Review; omitir en otros tipos
@@ -179,7 +211,7 @@ Carga la skill `set-videogame-schema` y ejecútala con los datos disponibles del
 📂 Categoría: [categoría]
 🏷️ Tags: [lista]
 🖼️ Imagen: [fuente] o ⚠️ pendiente
-🔍 SEO: keyword "[keyword]" configurada
+🔍 Excerpt: [excerpt]
 🗂 Schema VideoGame: ✓ configurado (schema_id: [id]) o ⚠️ pendiente — [motivo]
 🕐 Publicado: [fecha y hora]
 💾 Memoria: entrada actualizada a `publicado`
