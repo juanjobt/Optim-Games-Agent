@@ -5,6 +5,12 @@ agent: content-marketer
 
 Genera y publica un post completo en Optim Pixel siguiendo estos pasos en orden.
 
+## Registro de ejecución
+
+Antes de empezar el Paso 0, crea la cabecera del log en `memory/execution-logs/YYYY-MM-DD.md` (añade al final si ya existe) siguiendo la rule `execution-logging`. Registra cada paso a medida que se completa. Al finalizar el workflow, añade el resumen según el formato definido en la rule.
+
+---
+
 ## Paso 0 — Determinar el tema
 
 Antes de hacer ninguna pregunta, evalúa si ya se ha proporcionado un juego o tema en el mensaje de invocación.
@@ -312,3 +318,9 @@ Carga la skill `set-videogame-schema` y ejecútala con los datos disponibles:
 ```
 
 Si la imagen de portada quedó pendiente, recuérdalo para que el usuario pueda añadirla manualmente desde el panel de WordPress. Si faltan imágenes de contenido, indicar cuántas se buscaron y cuántas se encontraron.
+
+---
+
+## Paso 10 — Cerrar log de ejecución
+
+Añade el resumen final al log en `memory/execution-logs/YYYY-MM-DD.md`, incluyendo resultado global, pasos exitosos/con advertencia/con error, post ID, URL y cualquier tarea pendiente. Sigue el formato definido en la rule `execution-logging`.

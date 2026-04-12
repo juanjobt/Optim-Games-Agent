@@ -5,6 +5,10 @@ agent: content-marketer
 
 Genera una lista de prompts editoriales para el blog Optim Pixel siguiendo estos pasos en orden.
 
+## Registro de ejecución
+
+Antes de empezar el Paso 1, crea la cabecera del log en `memory/execution-logs/YYYY-MM-DD.md` (añade al final si ya existe) siguiendo la rule `execution-logging`. Registra cada paso a medida que se completa. Al finalizar el workflow, añade el resumen según el formato definido en la rule.
+
 ---
 
 ## 🛠 Parámetros de Entrada
@@ -73,3 +77,9 @@ Muestra los resultados en este formato:
 **Si hay más de 30 ideas pendientes en memoria** — Advertir antes de continuar: "Tienes X ideas pendientes sin usar. ¿Quieres que genere más igualmente?" y esperar confirmación.
 
 **Si el usuario pide más de 20 prompts** — Advertir que puede afectar a la variedad y calidad editorial, y pedir confirmación antes de continuar.
+
+---
+
+## Paso 5 — Cerrar log de ejecución
+
+Añade el resumen final al log en `memory/execution-logs/YYYY-MM-DD.md`, incluyendo resultado global, pasos exitosos/con advertencia/con error y número de ideas generadas. Sigue el formato definido en la rule `execution-logging`.
