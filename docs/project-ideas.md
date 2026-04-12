@@ -72,17 +72,7 @@ La documentación de la skill dice que el comando excluye automáticamente los p
 
 Habria que revisar la skill y crear el comando que use esa skill, ademas habria que ver si la skill no esta demasiado sobrecargada y hay que llevar carga al comando.
 
-# Footer
 
-Mi veredicto sobre la distribución actual:
-Para que el footer no quede descompensado (mucho peso a la izquierda con el logo y descripción, y mucho a la derecha con los menús), yo lo organizaría en 4 columnas (si tu plantilla lo permite):
+# generacion de imagenes
 
-Columna 1: Logo + Slogan + Descripción corta.
-
-Columna 2: Menú Principal (Navegación).
-
-Columna 3: Suscripción (El "Insert Coin").
-
-Columna 4: Contacto + Tu correo.
-
-Columna 5: Microiconos de sistemas
+hay un punto debil en el sistema de publicacion de mis posts con el comando create-post. El caso es que ahora se crear posts bastante bien incluso el sistema de buscar una imagen y vincularla al post esta funcionando bastante bien.
