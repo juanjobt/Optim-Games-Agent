@@ -109,6 +109,11 @@ Este archivo es la **fuente de verdad** de los tags disponibles para posts. Todo
 | 81 | Finlandia | País | 2026-04-12 |
 | 82 | 1987 | Año | 2026-04-12 |
 | 83 | Ocean Software | Desarrolladora | 2026-04-12 |
+| 84 | The Edge | Desarrolladora | 2026-04-12 |
+| 85 | Bo Jangeborg | Creador | 2026-04-12 |
+| 86 | Suecia | País | 2026-04-12 |
+| 87 | 1985 | Año | 2026-04-12 |
+| 88 | Electronic Arts | Desarrolladora | 2026-04-17 |
 
 ---
 

@@ -81,7 +81,7 @@ epoca: Años 90
 tipo_post: Review
 cantidad: 10
 enfoque_tematico: que trate sobre sonic
-modo_estrategia: editorial
+modo_estrategia: editorial / seo_master
 ```
 ---
 
