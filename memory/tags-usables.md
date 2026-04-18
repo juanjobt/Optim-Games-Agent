@@ -29,7 +29,7 @@ Este archivo es la **fuente de verdad** de los tags disponibles para posts. Todo
 | 1 | Super Nintendo | Sistema | 2026-04-11 |
 | 2 | PlayStation | Sistema | 2026-04-11 |
 | 3 | PlayStation 2 | Sistema | 2026-04-11 |
-| 4 | PS1 | Sistema | 2026-04-11 |
+| 4 | PS1 | Sistema | 2026-04-11 |ope
 | 5 | Sega Saturn | Sistema | 2026-04-11 |
 | 6 | Mega Drive | Sistema | 2026-04-11 |
 | 7 | Genesis | Sistema | 2026-04-11 |

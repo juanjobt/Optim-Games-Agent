@@ -1,0 +1,145 @@
+Project optim_pixel {
+  database_type: 'SQLite'
+  Note: 'Base de datos del blog Optim Pixel. Gestiona tags, posts publicados e internal links.'
+}
+
+// ============================================================
+// GRUPOS DE TAGS Y TAGS
+// Migrado desde memory/tags-usables.md
+// ============================================================
+
+Table tag_groups {
+  id integer [pk, increment]
+  slug varchar [not null, unique, note: 'Identificador máquina del grupo (ej: "sistema", "genero")']
+  name varchar [not null, unique, note: 'Nombre visible del grupo (ej: "Sistema", "Género")']
+  score_weight integer [not null, default: 1, note: 'Peso del grupo en el cálculo de similitud de internal_links. Tag no asignado a grupo = peso 1 (tag_comun)']
+  description text [note: 'Descripción del tipo de tag y su propósito']
+  created_at text [not null, default: `datetime('now')`, note: 'ISO 8601']
+
+  indexes {
+    slug [unique, name: 'uq_tag_groups_slug']
+  }
+}
+
+Table tags {
+  wp_id integer [pk, note: 'ID del tag en WordPress (clave primaria, no auto-increment)']
+  name varchar [not null, unique, note: 'Nombre exacto del tag como aparece en WordPress']
+  slug varchar [not null, unique, note: 'Slug del tag en WordPress']
+  group_id integer [not null, ref: > tag_groups.id]
+  created_at text [not null, default: `datetime('now')`, note: 'ISO 8601']
+
+  indexes {
+    group_id [name: 'idx_tags_group_id']
+  }
+}
+
+// ============================================================
+// POSTS Y RELACIÓN CON TAGS
+// Catálogo local de posts publicados en WordPress
+// ============================================================
+
+Table posts {
+  wp_id integer [pk, note: 'ID del post en WordPress (clave primaria, no auto-increment)']
+  title varchar [not null]
+  slug varchar [not null, unique]
+  category_slug varchar [not null, note: 'Categoría del post: reviews, historias o listas']
+  status varchar [not null, default: 'publish', note: 'Estado en WordPress: publish, draft, etc.']
+  published_at text [note: 'Fecha de publicación en WordPress (ISO 8601)']
+  created_at text [not null, default: `datetime('now')`, note: 'Fecha de creación del registro local (ISO 8601)']
+  updated_at text [note: 'Última actualización del registro (ISO 8601)']
+
+  indexes {
+    category_slug [name: 'idx_posts_category']
+  }
+}
+
+Table post_tags {
+  post_wp_id integer [not null, ref: > posts.wp_id]
+  tag_wp_id integer [not null, ref: > tags.wp_id]
+
+  indexes {
+    (post_wp_id, tag_wp_id) [unique, name: 'uq_post_tag']
+  }
+}
+
+// ============================================================
+// POST IDEAS
+// Cola editorial de ideas para posts, migrado desde memory/post-ideas.md
+// ============================================================
+
+Enum post_tipo {
+  Review
+  Historias
+  Listas
+}
+
+Enum post_idea_estado {
+  pendiente
+  en_uso
+  publicado
+}
+
+Enum post_modo {
+  editorial
+  seo_master
+}
+
+Table post_ideas {
+  id integer [pk, increment]
+  title varchar [not null, unique, note: 'Título del juego o tema']
+  sistema varchar [not null, note: 'Plataforma principal (ej: Super Nintendo)']
+  tipo post_tipo [not null, note: 'Tipo de post']
+  estado post_idea_estado [not null, default: 'pendiente']
+  modo post_modo [not null, default: 'editorial', note: 'Modo de generación: editorial (calidad) o seo_master (tráfico)']
+  angulo_editorial text [not null, note: 'El ángulo o gancho del post']
+  justificacion text [note: 'Por qué este post es relevante']
+  keyword_sugerida varchar [note: 'Keyword SEO sugerida (solo modo seo_master)']
+  factor_oportunidad text [note: 'Factor de oportunidad SEO (solo modo seo_master)']
+  genero varchar [note: 'Género del juego']
+  epoca varchar [note: 'Época (ej: Años 90, 1987)']
+  post_wp_id integer [ref: > posts.wp_id, note: 'Referencia al post publicado (null si no publicado)']
+  created_at text [not null, default: `datetime('now')`, note: 'ISO 8601']
+  updated_at text [not null, default: `datetime('now())`, note: 'ISO 8601']
+
+  indexes {
+    tipo [name: 'idx_post_ideas_tipo']
+    estado [name: 'idx_post_ideas_estado']
+  }
+}
+
+// ============================================================
+// INTERNAL LINKS
+// Registro de enlaces entre posts con score de relevancia
+// ============================================================
+
+Table internal_links {
+  id integer [pk, increment]
+  from_wp_id integer [not null, ref: > posts.wp_id, note: 'Post que contiene el enlace saliente']
+  to_wp_id integer [not null, ref: > posts.wp_id, note: 'Post destino del enlace']
+  score integer [not null, default: 0, note: 'Score de relevancia ponderado por tag_groups.score_weight']
+  created_at text [not null, default: `datetime('now')`, note: 'ISO 8601']
+
+  indexes {
+    (from_wp_id, to_wp_id) [unique, name: 'uq_from_to']
+    from_wp_id [name: 'idx_from_wp_id']
+    to_wp_id [name: 'idx_to_wp_id']
+  }
+}
+
+// ============================================================
+// DATOS INICIALES — Grupos de tags
+// ============================================================
+
+records tag_groups(id, slug, name, score_weight, description, created_at) {
+  1, 'sistema', 'Sistema', 3, 'Plataformas y sistemas de juego', '2026-04-11'
+  2, 'genero', 'Género', 2, 'Tipos de juego', '2026-04-11'
+  3, 'epoca', 'Época', 1, 'Décadas genéricas', '2026-04-11'
+  4, 'ano', 'Año', 1, 'Años específicos', '2026-04-11'
+  5, 'desarrolladora', 'Desarrolladora', 1, 'Compañías desarrolladoras', '2026-04-11'
+  6, 'creador', 'Creador', 1, 'Directores y diseñadores clave', '2026-04-11'
+  7, 'saga', 'Saga', 4, 'Series de juegos', '2026-04-11'
+  8, 'pais', 'País', 1, 'Origen geográfico', '2026-04-11'
+  9, 'tecnica', 'Técnica', 1, 'Tecnologías y motores', '2026-04-11'
+  10, 'personaje', 'Personaje', 1, 'Personajes icónicos', '2026-04-11'
+  11, 'compositor', 'Compositor', 1, 'Compositores de música', '2026-04-11'
+}
