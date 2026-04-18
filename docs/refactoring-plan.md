@@ -134,22 +134,29 @@ Consulta todos los posts publicados en WordPress y los inserta en `posts`. Tambi
 
 ## Fase 2 — Actualizar Reglas
 
-### 2.1 — `.opencode/rules/post-ideas-memory.md`
+### ✅ 2.1 — `.opencode/rules/post-ideas-memory.md` → `.opencode/rules/memory-system.md`
 
-Reescribir completamente:
+**Enfoque cambiado:** En lugar de reescribir la regla vieja, se elimina y se crea una nueva regla general de memoria.
 
-| Antes | Después |
-|-------|---------|
-| Fuente de verdad: `memory/post-ideas.md` | Fuente de verdad: `memory/blog.db` (tabla `post_ideas`) |
-| Leer archivo markdown | `db_query.py get-pending-ideas` |
-| Cambiar estado editando markdown | `db_query.py update-idea-state` |
-| Añadir idea añadiendo fila a tabla markdown | `db_query.py add-idea` con campos estructurados |
-| Formato: tabla con campo Prompt monolítico | Campos separados: `angulo_editorial`, `justificacion`, `keyword_sugerida`, `factor_oportunidad` |
+La regla `post-ideas-memory.md` estaba escrita enteramente alrededor de un archivo markdown que ya no existe. En su lugar se crea `memory-system.md` que cubre **todo el sistema de memoria SQLite** — no solo `post_ideas`, sino también `tags`, `posts`, `post_tags` e `internal_links`.
 
-Mantener:
-- Los 3 estados: `pendiente`, `en_uso`, `publicado`
-- La lógica de no repetir juegos ya registrados ( querying por `title` en SQLite)
-- La referencia al DBML como esquema de referencia
+**Acciones realizadas:**
+
+| Acción | Detalle |
+|--------|---------|
+| Eliminar | `.opencode/rules/post-ideas-memory.md` |
+| Crear | `.opencode/rules/memory-system.md` |
+| Actualizar | `opencode.json` — cambiar referencia a la nueva regla |
+
+**Contenido de `memory-system.md`:**
+
+- Fuente de verdad: `memory/blog.db` (SQLite), schema en `memory/blog.dbml`
+- Interfaz de consultas: `db_query.py` con subcomandos para post_ideas, tags y posts
+- Ciclo de vida de ideas: `pendiente → en_uso → publicado`
+- Tags y similitud: pesos desde `tag_groups.score_weight`
+- Tags y WordPress: resolución automática de `wp_id`
+- Reglas generales: no editar DB directamente, no usar archivos markdown legacy
+- Archivos legacy en `memory/backup/` como referencia histórica
 
 ### 2.2 — `.opencode/rules/internal-links-insertion.md`
 
@@ -157,11 +164,11 @@ Cambios menores:
 - Referenciar que `score_weight` ahora viene de `tag_groups` en la DB
 - Mencionar que los posts relacionados pueden consultarse localmente via `posts` y `post_tags`
 
-### 2.3 — `.opencode/rules/execution-logging.md`
+### ✅ 2.3 — `.opencode/rules/execution-logging.md`
 
-Actualizar referencias:
-- `memory/post-ideas.md` → `memory/blog.db (tabla post_ideas)`
-- `memory/tags-usables.md` → `memory/blog.db (tabla tags)`
+Cambios realizados:
+- ~`memory/post-ideas.md` → `memory/blog.db` (tabla `post_ideas`)~ Cambiado a referencia a la tabla `post_ideas` de la DB
+- ~`memory/tags-usables.md` → `memory/blog.db` (tabla `tags`)~ Cambiado a referencia a la tabla `tags` de la DB
 
 ### 2.4 — `.opencode/rules/env-access.md`
 
@@ -411,7 +418,8 @@ Verificar que:
 | `memory/blog.db` | Modificar — Añadir tablas, migrar datos |
 | `memory/scripts/db_init.py` | **Nuevo** |
 | `memory/scripts/db_query.py` | **Nuevo** |
-| `.opencode/rules/post-ideas-memory.md` | Reescribir |
+| `.opencode/rules/memory-system.md` | **Nuevo** — Regla general de memoria (reemplaza `post-ideas-memory.md`) |
+| `.opencode/rules/post-ideas-memory.md` | **Eliminado** — Reemplazado por `memory-system.md` |
 | `.opencode/rules/execution-logging.md` | Actualizar referencias |
 | `.opencode/rules/internal-links-insertion.md` | Actualizar score_weight |
 | `.opencode/commands/create-post.md` | Reescribir pasos 0, 4.5, 8 |

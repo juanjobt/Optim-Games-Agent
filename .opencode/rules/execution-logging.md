@@ -107,7 +107,7 @@ Cada paso tiene su propia subsección:
 - Uso de fallback cuando la fuente principal no funcionó
 - Datos que tuvieron que ser inferidos o aproximados (ej: época aproximada)
 - Menos imágenes de las esperadas
-- Tags que no se encontraron en `tags-usables.md` y tuvieron que crearse desde cero
+- Tags que no se encontraron en la tabla `tags` de la DB y tuvieron que crearse desde cero
 - Slugs que tuvieron que modificarse por colisión
 - Contenido que pudo quedar con longitud fuera del rango esperado
 
@@ -196,7 +196,7 @@ Cada paso tiene su propia subsección:
 ### Paso 8 — Actualizar memoria
 
 - **Estado:** éxito
-- **Detalle:** Estado cambiado a `publicado` en memory/post-ideas.md
+- **Detalle:** Estado cambiado a `publicado` en la tabla `post_ideas` de la DB
 
 ### Resumen
 
