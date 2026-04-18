@@ -55,7 +55,7 @@ python3 memory/scripts/db_init.py sync-posts-wp  # Poblar posts y post_tags desd
 
 Dependencias: Acceso a WordPress MCP para `sync-tags-wp` y `sync-posts-wp`.
 
-### 0.2 — Crear `memory/scripts/db_query.py`
+### ✅ 0.2 — Crear `memory/scripts/db_query.py`
 
 Interfaz de consultas para el agente (ejecutado via Bash, devuelve JSON). Subcomandos:
 

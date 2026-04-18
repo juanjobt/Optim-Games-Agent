@@ -90,9 +90,8 @@ Este archivo es la **fuente de verdad** de los tags disponibles para posts. Todo
 | 62 | Saga Final Fantasy | Saga | 2026-04-11 |
 | 63 | Saga Super Mario | Saga | 2026-04-11 |
 | 64 | Saga Resident Evil | Saga | 2026-04-11 |
-| 65 | Street Fighter | Saga | 2026-04-11 |
-| 66 | Castlevania | Saga | 2026-04-11 |
-| 67 | Metal Gear | Saga | 2026-04-11 |
+| 65 | Saga Street Fighter | Saga | 2026-04-11 |
+| 66 | Saga Castlevania | Saga | 2026-04-11 |
 | 68 | Alucard | Personaje | 2026-04-11 |
 | 69 | Sabreman | Personaje | 2026-04-11 |
 | 70 | España | País | 2026-04-11 |
@@ -105,7 +104,7 @@ Este archivo es la **fuente de verdad** de los tags disponibles para posts. Todo
 | 77 | Michiru Yamane | Compositor | 2026-04-11 |
 | 78 | Commodore 64 | Sistema | 2026-04-12 |
 | 79 | Finnigan Oy | Desarrolladora | 2026-04-12 |
-| 80 | Action-Adventure | Género | 2026-04-12 |
+| 80 | Acción-aventura | Género | 2026-04-12 |
 | 81 | Finlandia | País | 2026-04-12 |
 | 82 | 1987 | Año | 2026-04-12 |
 | 83 | Ocean Software | Desarrolladora | 2026-04-12 |
