@@ -1,6 +1,8 @@
 # Tags Usables — Optim Pixel
 
-Este archivo es la **fuente de verdad** de los tags disponibles para posts. Todos los tags usados deben estar validados contra esta lista. Los tags nuevos se añaden aquí automáticamente.
+> **⚠️ DEPRECATED** — Este archivo está obsoleto y ya no se mantiene. Los tags ahora se gestionan en la base de datos `memory/blog.db` (tabla `tags`). La información de este archivo no debe utilizarse como fuente de verdad. Se conserva temporalmente como referencia histórica hasta que la migración a `blog.db` se confirme completa.
+
+Este archivo fue la **fuente de verdad** de los tags disponibles para posts. Ahora esa responsabilidad corresponde a `memory/blog.db`.
 
 ---
 

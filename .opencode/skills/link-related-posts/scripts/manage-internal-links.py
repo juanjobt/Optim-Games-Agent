@@ -1,20 +1,18 @@
 #!/usr/bin/env python3
 """
 manage-internal-links.py
-Gestiona los internal links para Optim Pixel usando WordPress como fuente de datos.
+Gestiona los internal links para Optim Pixel usando SQLite como fuente de datos.
 
 Uso:
-  python manage-internal-links.py init
-  python manage-internal-links.py find-related --wp-id 42 --limit 5
+  python manage-internal-links.py find-related --wp-id 42 [--tags "sistema:Super Nintendo,genero:RPG"] [--limit 5]
   python manage-internal-links.py log-link --from-wp-id 42 --to-wp-id 17 --score 7
-  python manage-internal-links.py needs-links --limit 10
+  python manage-internal-links.py needs-links [--limit 10]
   python manage-internal-links.py stats
   python manage-internal-links.py get-post-content --wp-id 42
+  python manage-internal-links.py get-links --wp-id 42
 
-Requiere en .env:
-  WP_BASE_URL=https://optimpixel.com
-  WP_USER=tu_usuario
-  WP_APP_PASSWORD=xxxx xxxx xxxx xxxx xxxx xxxx
+La base de datos se inicializa con db_init.py. Este script asume que las tablas
+ya existen y contienen datos sincronizados (tags, posts, post_tags).
 """
 
 import argparse
@@ -34,7 +32,6 @@ DB_PATH = PROJECT_ROOT / "memory" / "blog.db"
 
 
 def load_env(env_path):
-    """Carga variables del .env sin dependencias externas."""
     env = {}
     env_path = Path(env_path) if isinstance(env_path, str) else env_path
     try:
@@ -49,29 +46,24 @@ def load_env(env_path):
     return env
 
 
-def get_wp_config(env_path=None):
-    """Devuelve (wp_base_url, auth_header) leyendo el .env."""
-    if env_path is None:
-        env_path = PROJECT_ROOT / ".env"
+def get_wp_config():
+    import os as _os
+    env_path = PROJECT_ROOT / ".env"
     env = load_env(env_path)
-    wp_base_url     = env.get("WP_BASE_URL")     or os.environ.get("WP_BASE_URL")
-    wp_user         = env.get("WP_USER")         or os.environ.get("WP_USER")
-    wp_app_password = env.get("WP_APP_PASSWORD") or os.environ.get("WP_APP_PASSWORD")
-
+    wp_base_url = env.get("WP_BASE_URL") or _os.environ.get("WP_BASE_URL")
+    wp_user = env.get("WP_USER") or _os.environ.get("WP_USER")
+    wp_app_password = env.get("WP_APP_PASSWORD") or _os.environ.get("WP_APP_PASSWORD")
     if not wp_base_url or not wp_user or not wp_app_password:
         print(json.dumps({
             "ok": False,
             "error": "WP_BASE_URL, WP_USER y WP_APP_PASSWORD son obligatorios en .env"
         }), file=sys.stderr)
         sys.exit(1)
-
     credentials = base64.b64encode(f"{wp_user}:{wp_app_password}".encode()).decode()
-    auth_header = f"Basic {credentials}"
-    return wp_base_url.rstrip("/"), auth_header
+    return wp_base_url.rstrip("/"), f"Basic {credentials}"
 
 
 def wp_get(endpoint, wp_base_url, auth_header):
-    """GET a la WP REST API. Devuelve el JSON parseado."""
     url = f"{wp_base_url}/wp-json/wp/v2/{endpoint}"
     req = urllib.request.Request(url, headers={"Authorization": auth_header})
     try:
@@ -82,203 +74,267 @@ def wp_get(endpoint, wp_base_url, auth_header):
         raise RuntimeError(f"HTTP {e.code}: {error_body}")
 
 
-def wp_get_with_headers(endpoint, wp_base_url, auth_header):
-    """GET a la WP REST API. Devuelve (json, headers) para obtener total de posts."""
-    url = f"{wp_base_url}/wp-json/wp/v2/{endpoint}"
-    req = urllib.request.Request(url, headers={"Authorization": auth_header})
-    try:
-        with urllib.request.urlopen(req, timeout=30) as response:
-            headers = dict(response.headers)
-            return json.loads(response.read().decode("utf-8")), headers
-    except urllib.error.HTTPError as e:
-        error_body = e.read().decode("utf-8")
-        raise RuntimeError(f"HTTP {e.code}: {error_body}")
-
-
 def get_conn():
-    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    if not DB_PATH.exists():
+        print(json.dumps({
+            "ok": False,
+            "error": f"Base de datos no encontrada: {DB_PATH}. Ejecuta db_init.py init primero."
+        }), file=sys.stderr)
+        sys.exit(1)
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON")
     return conn
 
 
-def cmd_init(args):
-    """Inicializa la base de datos con solo la tabla internal_links."""
-    conn = get_conn()
-    conn.executescript("""
-        CREATE TABLE IF NOT EXISTS internal_links (
-            id           INTEGER PRIMARY KEY AUTOINCREMENT,
-            from_wp_id   INTEGER NOT NULL,
-            to_wp_id     INTEGER NOT NULL,
-            score        INTEGER NOT NULL DEFAULT 0,
-            created_at   TEXT    NOT NULL,
-            UNIQUE (from_wp_id, to_wp_id)
-        );
-
-        CREATE INDEX IF NOT EXISTS idx_internal_links_from ON internal_links(from_wp_id);
-        CREATE INDEX IF NOT EXISTS idx_internal_links_to   ON internal_links(to_wp_id);
-    """)
-    conn.commit()
-    conn.close()
-    print(json.dumps({"ok": True, "message": "Base de datos inicializada correctamente", "path": str(DB_PATH)}))
+def row_to_dict(row):
+    if row is None:
+        return None
+    return dict(row)
 
 
-def get_post_metadata(wp_id, wp_base_url, auth_header):
-    """Obtiene metadatos de un post desde la WP REST API."""
-    post = wp_get(f"posts/{wp_id}?context=edit", wp_base_url, auth_header)
-
-    meta = post.get("meta", {})
-
-    return {
-        "id": post.get("id"),
-        "title": post.get("title", {}).get("rendered", ""),
-        "url": post.get("link", ""),
-        "date": post.get("date", ""),
-        "tags": post.get("tags", []),
-        "categories": post.get("categories", []),
-        "sistema": meta.get("sistema", ""),
-        "genero": meta.get("genero", ""),
-        "saga": meta.get("saga", ""),
-        "desarrolladora": meta.get("desarrolladora", ""),
-        "epoca": meta.get("epoca", ""),
-    }
-
-TYPE_SCORES = {
-    "saga": 4,
-    "sistema": 3,
-    "genero": 2,
-    "desarrolladora": 1,
-    "epoca": 1,
-    "tag_comun": 1,
-}
-
-def parse_tag_with_type(tag_str):
-    """Parsea un tag con formato 'tipo:valor' o devuelve (None, tag_str)."""
-    tag_str = tag_str.strip()
-    if ":" in tag_str:
-        parts = tag_str.split(":", 1)
-        return parts[0].strip().lower(), parts[1].strip()
-    return None, tag_str
+def rows_to_list(rows):
+    return [dict(r) for r in rows]
 
 
-def search_posts_by_tag(tag_name, wp_base_url, auth_header, exclude_wp_id, per_page=50):
-    """Busca posts que contengan un tag específico."""
-    tags = wp_get(f"tags?search={urllib.parse.quote(tag_name)}&per_page=10", wp_base_url, auth_header)
-    if not tags:
-        return []
-    
-    tag_ids = [t["id"] for t in tags if t["name"].lower() == tag_name.lower()]
-    if not tag_ids:
-        return []
-    
-    candidates = wp_get(
-        f"posts?tags={','.join(map(str, tag_ids))}&exclude={exclude_wp_id}&per_page={per_page}&status=publish",
-        wp_base_url,
-        auth_header
-    )
-    return candidates
+def out(data):
+    print(json.dumps(data, ensure_ascii=False, default=str))
 
 
-def calculate_score(candidate, current):
-    """Calcula el score de similitud entre el post actual y un candidato."""
-    score = 0
+def get_score_weights(conn):
+    rows = conn.execute("SELECT slug, score_weight FROM tag_groups").fetchall()
+    weights = {row["slug"]: row["score_weight"] for row in rows}
+    weights["tag_comun"] = 1
+    return weights
 
-    if candidate.get("saga") and current.get("saga"):
-        if candidate["saga"].lower() == current["saga"].lower():
-            score += 3
 
-    if candidate.get("sistema") and current.get("sistema"):
-        if candidate["sistema"].lower() == current["sistema"].lower():
-            score += 2
+def find_related_from_db(conn, wp_id, limit):
+    tag_rows = conn.execute("""
+        SELECT t.wp_id, t.name, t.slug, tg.slug as group_slug, tg.score_weight
+        FROM post_tags pt
+        JOIN tags t ON pt.tag_wp_id = t.wp_id
+        JOIN tag_groups tg ON t.group_id = tg.id
+        WHERE pt.post_wp_id = ?
+    """, (wp_id,)).fetchall()
 
-    if candidate.get("genero") and current.get("genero"):
-        if candidate["genero"].lower() == current["genero"].lower():
-            score += 1
+    if not tag_rows:
+        out({"ok": False, "error": f"El post wp_id={wp_id} no tiene tags en la base de datos local. Usa --tags para especificarlos manualmente."})
+        return
 
-    if candidate.get("desarrolladora") and current.get("desarrolladora"):
-        if candidate["desarrolladora"].lower() == current["desarrolladora"].lower():
-            score += 1
+    linked_to_ids = set()
+    try:
+        existing = conn.execute(
+            "SELECT to_wp_id FROM internal_links WHERE from_wp_id = ?",
+            (wp_id,),
+        ).fetchall()
+        linked_to_ids = {row["to_wp_id"] for row in existing}
+    except Exception:
+        pass
 
-    if candidate.get("epoca") and current.get("epoca"):
-        if candidate["epoca"].lower() == current["epoca"].lower():
-            score += 1
+    scores = {}
 
-    current_tags = set(current.get("tags", []))
-    candidate_tags = set(candidate.get("tags", []))
-    shared_tags = current_tags & candidate_tags
-    score += len(shared_tags)
+    for tag_row in tag_rows:
+        tag_wp_id = tag_row["wp_id"]
+        group_slug = tag_row["group_slug"]
+        score_weight = tag_row["score_weight"]
 
-    return score
+        matching_posts = conn.execute("""
+            SELECT pt.post_wp_id
+            FROM post_tags pt
+            WHERE pt.tag_wp_id = ? AND pt.post_wp_id != ?
+        """, (tag_wp_id, wp_id)).fetchall()
+
+        for mp in matching_posts:
+            candidate_id = mp["post_wp_id"]
+            if candidate_id in linked_to_ids:
+                continue
+            if candidate_id not in scores:
+                scores[candidate_id] = {"wp_id": candidate_id, "score": 0, "shared_tags": []}
+            scores[candidate_id]["score"] += score_weight
+            scores[candidate_id]["shared_tags"].append({
+                "name": tag_row["name"],
+                "slug": tag_row["slug"],
+                "group_slug": group_slug,
+                "score_weight": score_weight,
+            })
+
+    if not scores:
+        out({"ok": True, "related": [], "source_wp_id": wp_id, "count": 0})
+        return
+
+    candidate_ids = list(scores.keys())
+
+    placeholders = ",".join("?" * len(candidate_ids))
+    posts_rows = conn.execute(
+        f"SELECT wp_id, title, slug, category_slug, published_at FROM posts WHERE wp_id IN ({placeholders})",
+        candidate_ids,
+    ).fetchall()
+    posts_by_id = {row["wp_id"]: row for row in posts_rows}
+
+    results = []
+    for cid, score_data in scores.items():
+        post = posts_by_id.get(cid)
+        if not post:
+            continue
+        results.append({
+            "wp_id": cid,
+            "title": post["title"],
+            "slug": post["slug"],
+            "category_slug": post["category_slug"],
+            "url": f"https://optimpixel.com/{post['slug']}",
+            "date": post["published_at"],
+            "score": score_data["score"],
+            "shared_tags": score_data["shared_tags"],
+        })
+
+    results.sort(key=lambda x: (-x["score"], x.get("date") or ""))
+
+    results = results[:limit]
+
+    tag_summary = [{"name": r["name"], "group_slug": r["group_slug"], "score_weight": r["score_weight"]} for r in tag_rows]
+
+    out({"ok": True, "related": results, "source_wp_id": wp_id, "source_tags": tag_summary, "count": len(results)})
+
+
+def find_related_from_tags(conn, wp_id, tags_str, limit):
+    weights = get_score_weights(conn)
+    raw_tags = [t.strip() for t in tags_str.split(",") if t.strip()]
+
+    tagged = []
+    untyped = []
+    for tag_str in raw_tags:
+        if ":" in tag_str:
+            parts = tag_str.split(":", 1)
+            group_slug = parts[0].strip().lower()
+            tag_value = parts[1].strip()
+            weight = weights.get(group_slug, 1)
+            tagged.append((group_slug, tag_value, weight))
+        else:
+            untyped.append(tag_str)
+
+    scores = {}
+
+    for group_slug, tag_value, weight in tagged:
+        tag_row = conn.execute(
+            "SELECT wp_id, name, slug FROM tags WHERE name = ? OR slug = ?",
+            (tag_value, tag_value.lower().replace(" ", "-")),
+        ).fetchone()
+
+        if not tag_row:
+            tag_row = conn.execute(
+                "SELECT wp_id, name, slug FROM tags WHERE name LIKE ?",
+                (f"%{tag_value}%",),
+            ).fetchone()
+
+        if not tag_row:
+            continue
+
+        matching_posts = conn.execute(
+            "SELECT post_wp_id FROM post_tags WHERE tag_wp_id = ? AND post_wp_id != ?",
+            (tag_row["wp_id"], wp_id),
+        ).fetchall()
+
+        for mp in matching_posts:
+            cid = mp["post_wp_id"]
+            if cid not in scores:
+                scores[cid] = {"wp_id": cid, "score": 0, "shared_tags": []}
+            scores[cid]["score"] += weight
+            scores[cid]["shared_tags"].append({
+                "name": tag_row["name"],
+                "slug": tag_row["slug"],
+                "group_slug": group_slug,
+                "score_weight": weight,
+            })
+
+    for tag_value in untyped:
+        weight = weights.get("tag_comun", 1)
+        tag_row = conn.execute(
+            "SELECT wp_id, name, slug FROM tags WHERE name = ? OR slug = ?",
+            (tag_value, tag_value.lower().replace(" ", "-")),
+        ).fetchone()
+
+        if not tag_row:
+            continue
+
+        matching_posts = conn.execute(
+            "SELECT post_wp_id FROM post_tags WHERE tag_wp_id = ? AND post_wp_id != ?",
+            (tag_row["wp_id"], wp_id),
+        ).fetchall()
+
+        for mp in matching_posts:
+            cid = mp["post_wp_id"]
+            if cid not in scores:
+                scores[cid] = {"wp_id": cid, "score": 0, "shared_tags": []}
+            scores[cid]["score"] += weight
+            scores[cid]["shared_tags"].append({
+                "name": tag_row["name"],
+                "slug": tag_row["slug"],
+                "group_slug": "tag_comun",
+                "score_weight": weight,
+            })
+
+    linked_to_ids = set()
+    try:
+        existing = conn.execute(
+            "SELECT to_wp_id FROM internal_links WHERE from_wp_id = ?",
+            (wp_id,),
+        ).fetchall()
+        linked_to_ids = {row["to_wp_id"] for row in existing}
+    except Exception:
+        pass
+
+    candidate_ids = [cid for cid in scores if cid not in linked_to_ids]
+
+    placeholders = ",".join("?" * len(candidate_ids)) if candidate_ids else "0"
+    posts_rows = conn.execute(
+        f"SELECT wp_id, title, slug, category_slug, published_at FROM posts WHERE wp_id IN ({placeholders})",
+        candidate_ids if candidate_ids else [0],
+    ).fetchall()
+    posts_by_id = {row["wp_id"]: row for row in posts_rows}
+
+    results = []
+    for cid in candidate_ids:
+        score_data = scores[cid]
+        post = posts_by_id.get(cid)
+        if not post:
+            continue
+        results.append({
+            "wp_id": cid,
+            "title": post["title"],
+            "slug": post["slug"],
+            "category_slug": post["category_slug"],
+            "url": f"https://optimpixel.com/{post['slug']}",
+            "date": post["published_at"],
+            "score": score_data["score"],
+            "shared_tags": score_data["shared_tags"],
+        })
+
+    results.sort(key=lambda x: (-x["score"], x.get("date") or ""))
+    results = results[:limit]
+
+    out({"ok": True, "related": results, "source_wp_id": wp_id, "count": len(results)})
 
 
 def cmd_find_related(args):
-    """Busca posts relacionados usando la WP REST API con tags tipados."""
-    env_path = PROJECT_ROOT / ".env"
-    wp_base_url, auth_header = get_wp_config(str(env_path))
     conn = get_conn()
-
     try:
-        if not args.tags:
-            print(json.dumps({"ok": False, "error": "Se requiere --tags con formato 'tipo:valor'"}), file=sys.stderr)
-            sys.exit(1)
-
-        raw_tags = [t.strip() for t in args.tags.split(",") if t.strip()]
-        parsed_tags = []
-        for tag_str in raw_tags:
-            tag_type, tag_value = parse_tag_with_type(tag_str)
-            if tag_type and tag_type in TYPE_SCORES:
-                parsed_tags.append((tag_type, tag_value, TYPE_SCORES[tag_type]))
-            else:
-                parsed_tags.append(("tag_comun", tag_str, TYPE_SCORES["tag_comun"]))
-
-        posts_scores = {}
-
-        for tag_type, tag_value, base_score in parsed_tags:
-            candidates = search_posts_by_tag(tag_value, wp_base_url, auth_header, args.wp_id)
-            
-            for cand in candidates:
-                wp_id = cand.get("id")
-                if wp_id not in posts_scores:
-                    posts_scores[wp_id] = {
-                        "wp_id": wp_id,
-                        "title": cand.get("title", {}).get("rendered", ""),
-                        "url": cand.get("link", ""),
-                        "date": cand.get("date", ""),
-                        "score": 0,
-                        "tags": cand.get("tags", []),
-                        "categories": cand.get("categories", []),
-                    }
-                posts_scores[wp_id]["score"] += base_score
-
-        linked_to_ids = set()
-        try:
-            existing = conn.execute(
-                "SELECT to_wp_id FROM internal_links WHERE from_wp_id = ?",
-                (args.wp_id,)
-            ).fetchall()
-            linked_to_ids = {row["to_wp_id"] for row in existing}
-        except Exception:
-            pass
-
-        filtered = [p for p in posts_scores.values() if p["wp_id"] not in linked_to_ids]
-        filtered.sort(key=lambda x: (-x["score"], x["date"]))
-        results = filtered[:args.limit]
-
-        print(json.dumps({"ok": True, "related": results}, ensure_ascii=False))
-
+        source_exists = conn.execute("SELECT 1 FROM posts WHERE wp_id = ?", (args.wp_id,)).fetchone()
+        if args.tags:
+            find_related_from_tags(conn, args.wp_id, args.tags, args.limit)
+        else:
+            if not source_exists:
+                out({"ok": False, "error": f"El post wp_id={args.wp_id} no existe en la base de datos local. Usa --tags para especificar los tags manualmente."})
+                return
+            find_related_from_db(conn, args.wp_id, args.limit)
     except Exception as e:
-        print(json.dumps({"ok": False, "error": str(e)}), file=sys.stderr)
-        sys.exit(1)
+        out({"ok": False, "error": str(e)})
     finally:
         conn.close()
 
 
 def cmd_log_link(args):
-    """Registra un internal link creado."""
     conn = get_conn()
     now = datetime.now(timezone.utc).isoformat()
-
     try:
         conn.execute(
             """
@@ -287,145 +343,100 @@ def cmd_log_link(args):
             ON CONFLICT(from_wp_id, to_wp_id) DO UPDATE SET
                 score=excluded.score, created_at=excluded.created_at
             """,
-            (args.from_wp_id, args.to_wp_id, args.score, now)
+            (args.from_wp_id, args.to_wp_id, args.score, now),
         )
         conn.commit()
-        print(json.dumps({"ok": True, "from_wp_id": args.from_wp_id, "to_wp_id": args.to_wp_id, "score": args.score}))
-
+        out({"ok": True, "from_wp_id": args.from_wp_id, "to_wp_id": args.to_wp_id, "score": args.score})
     except Exception as e:
         conn.rollback()
-        print(json.dumps({"ok": False, "error": str(e)}), file=sys.stderr)
-        sys.exit(1)
+        out({"ok": False, "error": str(e)})
     finally:
         conn.close()
 
 
 def cmd_needs_links(args):
-    """Lista posts que necesitan más outgoing links."""
-    env_path = PROJECT_ROOT / ".env"
-    wp_base_url, auth_header = get_wp_config(str(env_path))
     conn = get_conn()
-
     try:
-        all_posts = []
-        page = 1
-        while True:
-            posts, headers = wp_get_with_headers(
-                f"posts?per_page=100&page={page}&status=publish",
-                wp_base_url,
-                auth_header
-            )
-            if not posts:
-                break
-            all_posts.extend(posts)
-            total_pages = int(headers.get("X-WP-TotalPages", 1))
-            if page >= total_pages:
-                break
-            page += 1
-
-        linked_posts = conn.execute("""
-            SELECT DISTINCT from_wp_id FROM internal_links
-        """).fetchall()
-        linked_from = {row["from_wp_id"] for row in linked_posts}
-
-        links_per_post = {}
         rows = conn.execute("""
-            SELECT from_wp_id, COUNT(*) as cnt FROM internal_links
-            GROUP BY from_wp_id
-        """).fetchall()
+            SELECT p.wp_id, p.title, p.slug, p.category_slug, p.published_at,
+                   COUNT(il.id) as outgoing_count
+            FROM posts p
+            LEFT JOIN internal_links il ON p.wp_id = il.from_wp_id
+            GROUP BY p.wp_id
+            HAVING outgoing_count < 2
+            ORDER BY p.published_at ASC
+            LIMIT ?
+        """, (args.limit,)).fetchall()
+
+        results = []
         for row in rows:
-            links_per_post[row["from_wp_id"]] = row["cnt"]
+            results.append({
+                "wp_id": row["wp_id"],
+                "title": row["title"],
+                "slug": row["slug"],
+                "category_slug": row["category_slug"],
+                "url": f"https://optimpixel.com/{row['slug']}",
+                "date": row["published_at"],
+                "outgoing_links": row["outgoing_count"],
+            })
 
-        needs_links = []
-        for post in all_posts:
-            wp_id = post["id"]
-            outgoing = links_per_post.get(wp_id, 0)
-            if outgoing < 2:
-                needs_links.append({
-                    "wp_id": wp_id,
-                    "title": post["title"]["rendered"],
-                    "url": post["link"],
-                    "date": post["date"],
-                    "outgoing_links": outgoing,
-                })
-
-        needs_links.sort(key=lambda x: (x["outgoing_links"], x["date"]))
-        results = needs_links[:args.limit]
-
-        print(json.dumps({"ok": True, "posts_needing_links": results, "count": len(results)}, ensure_ascii=False))
-
+        out({"ok": True, "posts_needing_links": results, "count": len(results)})
     except Exception as e:
-        print(json.dumps({"ok": False, "error": str(e)}), file=sys.stderr)
-        sys.exit(1)
+        out({"ok": False, "error": str(e)})
     finally:
         conn.close()
 
 
 def cmd_stats(args):
-    """Estadísticas generales de internal linking."""
-    env_path = PROJECT_ROOT / ".env"
-    wp_base_url, auth_header = get_wp_config(str(env_path))
     conn = get_conn()
-
     try:
-        _, headers = wp_get_with_headers("posts?per_page=1&status=publish", wp_base_url, auth_header)
-        total_posts = int(headers.get("X-WP-Total", 0))
-
+        total_posts = conn.execute("SELECT COUNT(*) FROM posts").fetchone()[0]
         total_links = conn.execute("SELECT COUNT(*) FROM internal_links").fetchone()[0]
 
-        linked_posts = conn.execute("""
-            SELECT DISTINCT from_wp_id FROM internal_links
-        """).fetchall()
-        linked_from = {row["from_wp_id"] for row in linked_posts}
-
-        posts_sin_links = total_posts - len(linked_from)
+        posts_with_links = conn.execute("SELECT DISTINCT from_wp_id FROM internal_links").fetchall()
+        posts_with_links_count = len(posts_with_links)
+        posts_without_links = total_posts - posts_with_links_count
 
         rows = conn.execute("""
             SELECT from_wp_id, COUNT(*) as cnt FROM internal_links
             GROUP BY from_wp_id
         """).fetchall()
-        posts_con_un_link = sum(1 for r in rows if r["cnt"] == 1)
-        posts_con_multiple_links = sum(1 for r in rows if r["cnt"] >= 2)
+        one_link = sum(1 for r in rows if r["cnt"] == 1)
+        multiple_links = sum(1 for r in rows if r["cnt"] >= 2)
 
-        print(json.dumps({
+        out({
             "ok": True,
             "stats": {
                 "total_posts": total_posts,
                 "total_internal_links": total_links,
-                "posts_sin_ningun_link": posts_sin_links,
-                "posts_con_un_solo_link": posts_con_un_link,
-                "posts_correctamente_enlazados": posts_con_multiple_links,
+                "posts_sin_ningun_link": posts_without_links,
+                "posts_con_un_solo_link": one_link,
+                "posts_correctamente_enlazados": multiple_links,
             }
-        }))
-
+        })
     except Exception as e:
-        print(json.dumps({"ok": False, "error": str(e)}), file=sys.stderr)
-        sys.exit(1)
+        out({"ok": False, "error": str(e)})
     finally:
         conn.close()
 
 
 def cmd_get_post_content(args):
-    """Obtiene el contenido HTML de un post de WordPress."""
-    env_path = PROJECT_ROOT / ".env"
-    wp_base_url, auth_header = get_wp_config(str(env_path))
+    wp_base_url, auth_header = get_wp_config()
     try:
         post = wp_get(f"posts/{args.wp_id}?context=edit", wp_base_url, auth_header)
         content = post.get("content", {}).get("raw", "")
         title = post.get("title", {}).get("rendered", "")
-        print(json.dumps({
+        out({
             "ok": True,
             "wp_id": str(args.wp_id),
             "title": title,
             "content": content
-        }, ensure_ascii=False))
+        })
     except Exception as e:
-        print(json.dumps({"ok": False, "error": str(e)}), file=sys.stderr)
-        sys.exit(1)
+        out({"ok": False, "error": str(e)})
 
 
 def cmd_get_links(args):
-    """Obtiene los enlaces salientes (outgoing) de un post."""
     conn = get_conn()
     try:
         outgoing = conn.execute("""
@@ -442,31 +453,27 @@ def cmd_get_links(args):
             ORDER BY created_at DESC
         """, (args.wp_id,)).fetchall()
 
-        print(json.dumps({
+        out({
             "ok": True,
             "wp_id": args.wp_id,
-            "outgoing": [dict(row) for row in outgoing],
-            "incoming": [dict(row) for row in incoming],
+            "outgoing": rows_to_list(outgoing),
+            "incoming": rows_to_list(incoming),
             "outgoing_count": len(outgoing),
             "incoming_count": len(incoming)
-        }, ensure_ascii=False))
+        })
     except Exception as e:
-        print(json.dumps({"ok": False, "error": str(e)}), file=sys.stderr)
-        sys.exit(1)
+        out({"ok": False, "error": str(e)})
     finally:
         conn.close()
 
 
 def main():
     parser = argparse.ArgumentParser(description="Gestión de internal links para Optim Pixel")
-    parser.add_argument("--env", default=".env", help="Ruta al archivo .env")
     sub = parser.add_subparsers(dest="command", required=True)
 
-    sub.add_parser("init", help="Inicializa la base de datos")
-
-    p_find = sub.add_parser("find-related", help="Busca posts relacionados por scoring de similitud")
-    p_find.add_argument("--wp-id", type=int, required=True)
-    p_find.add_argument("--tags", type=str, required=True, help="Tags con tipo: 'sistema:Nintendo,genero:RPG,saga:Final Fantasy'")
+    p_find = sub.add_parser("find-related", help="Busca posts relacionados usando la base de datos local")
+    p_find.add_argument("--wp-id", type=int, required=True, help="ID de WordPress del post fuente")
+    p_find.add_argument("--tags", type=str, default=None, help="Tags con tipo: 'sistema:Super Nintendo,genero:RPG' (opcional, si no se proporciona se usan los del post)")
     p_find.add_argument("--limit", type=int, default=5)
 
     p_log = sub.add_parser("log-link", help="Registra un internal link creado")
@@ -477,23 +484,22 @@ def main():
     p_needs = sub.add_parser("needs-links", help="Lista posts con menos de 2 outgoing links")
     p_needs.add_argument("--limit", type=int, default=20)
 
-    p_get = sub.add_parser("get-post-content", help="Obtiene el contenido HTML de un post")
-    p_get.add_argument("--wp-id", type=int, required=True, help="ID de WordPress del post")
+    p_get = sub.add_parser("get-post-content", help="Obtiene el contenido HTML de un post de WordPress")
+    p_get.add_argument("--wp-id", type=int, required=True)
 
     p_links = sub.add_parser("get-links", help="Obtiene los enlaces salientes y entrantes de un post")
-    p_links.add_argument("--wp-id", type=int, required=True, help="ID de WordPress del post")
+    p_links.add_argument("--wp-id", type=int, required=True)
 
     sub.add_parser("stats", help="Estadísticas generales de internal linking")
 
     args = parser.parse_args()
     {
-        "init":            cmd_init,
-        "find-related":    cmd_find_related,
-        "log-link":        cmd_log_link,
-        "needs-links":     cmd_needs_links,
+        "find-related": cmd_find_related,
+        "log-link": cmd_log_link,
+        "needs-links": cmd_needs_links,
         "get-post-content": cmd_get_post_content,
-        "get-links":       cmd_get_links,
-        "stats":           cmd_stats,
+        "get-links": cmd_get_links,
+        "stats": cmd_stats,
     }[args.command](args)
 
 

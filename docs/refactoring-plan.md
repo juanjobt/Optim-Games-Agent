@@ -29,7 +29,7 @@ Los archivos markdown (`tags-usables.md`, `post-ideas.md`) se mueven a `memory/b
 
 ---
 
-## Fase 0 — Scripts Base
+## ✅ Fase 0 — Scripts Base
 
 ### ✅ 0.1 — Crear `memory/scripts/db_init.py`
 
@@ -83,7 +83,7 @@ Todos los comandos devuelven JSON para que el agente los parsee.
 
 ## Fase 1 — Migración de Datos
 
-### 1.1 — Ejecutar migración inicial
+### ✅ 1.1 — Ejecutar migración inicial
 
 ```bash
 python3 memory/scripts/db_init.py init
@@ -97,13 +97,18 @@ Verificar:
 - 38 filas en `post_ideas`
 - 6 filas en `internal_links` preservadas
 
-### 1.2 — Refactorizar `manage-internal-links.py`
+### ✅ 1.2 — Refactorizar `manage-internal-links.py`
 
-Cambios:
-- `cmd_init()` debe crear el schema completo (todas las tablas), no solo `internal_links`
-- Eliminar `TYPE_SCORES` hardcodeado → leer desde `SELECT score_weight FROM tag_groups WHERE slug = ?`
-- `cmd_find_related()` puede consultar `post_tags` localmente en vez de la API de WordPress
-- `cmd_needs_links()` puede consultar `posts` localmente
+Cambios realizados:
+- ✅ Eliminado `cmd_init()` — `db_init.py` es el encargado centralizado de crear tablas
+- ✅ Eliminado `TYPE_SCORES` hardcodeado → `get_score_weights(conn)` lee desde `tag_groups.score_weight`
+- ✅ `cmd_find_related()` consulta `post_tags` + `tags` + `tag_groups` localmente sin llamar a la API de WordPress
+- ✅ `cmd_needs_links()` consulta `posts` localmente sin llamar a la API de WordPress
+- ✅ `cmd_stats()` usa `SELECT COUNT(*) FROM posts` localmente sin llamar a la API de WordPress
+- ✅ `--tags` es ahora opcional: si no se proporciona, se obtienen automáticamente del post desde la DB local
+- ✅ Resultados de `find-related` incluyen `shared_tags` con nombre, grupo y peso para mayor transparencia
+- ✅ Eliminado código muerto: `get_post_metadata()`, `calculate_score()`, `search_posts_by_tag()`, `parse_tag_with_type()`, `wp_get_with_headers()`
+- ✅ Eliminado `cmd_init` del CLI y de la documentación
 
 ### 1.3 — Poblar `wp_id` en `tags`
 
