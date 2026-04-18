@@ -31,7 +31,7 @@ Los archivos markdown (`tags-usables.md`, `post-ideas.md`) se mueven a `memory/b
 
 ## Fase 0 — Scripts Base
 
-### 0.1 — Crear `memory/scripts/db_init.py`
+### ✅ 0.1 — Crear `memory/scripts/db_init.py`
 
 Script de inicialización y migración que:
 

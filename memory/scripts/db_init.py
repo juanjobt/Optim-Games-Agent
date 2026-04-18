@@ -5,7 +5,6 @@ db_init.py — Inicialización y migración de la base de datos del blog Optim P
 Subcomandos:
     python3 memory/scripts/db_init.py init            # Crear tablas y seed de tag_groups
     python3 memory/scripts/db_init.py migrate-tags   # Migrar tags desde tags-usables.md (resuelve wp_ids via WP API)
-    python3 memory/scripts/db_init.py migrate-ideas  # Migrar post ideas desde post-ideas.md
     python3 memory/scripts/db_init.py sync-tags-wp    # Sincronizar wp_ids de tags con WordPress
     python3 memory/scripts/db_init.py sync-posts-wp   # Poblar posts y post_tags desde WordPress
 """
@@ -27,7 +26,6 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
 DB_PATH = PROJECT_ROOT / "memory" / "blog.db"
 TAGS_FILE = PROJECT_ROOT / "memory" / "tags-usables.md"
-IDEAS_FILE = PROJECT_ROOT / "memory" / "post-ideas.md"
 ENV_PATH = PROJECT_ROOT / ".env"
 
 TAG_GROUPS_SEED = [
@@ -423,171 +421,6 @@ def cmd_migrate_tags(args):
 
 
 # ============================================================
-# PARSE POST-IDEAS.MD
-# ============================================================
-
-def parse_prompt(prompt_text):
-    fields = {}
-    text = prompt_text.strip()
-
-    prefixes = [
-        "Ejecuta el comando /create-post con los siguientes datos:",
-        "Ejecuta el comando /create-post con los siguientes datos:",
-    ]
-    for prefix in prefixes:
-        if text.startswith(prefix):
-            text = text[len(prefix):].strip()
-            break
-
-    text = text.lstrip("-").strip()
-    text = text.replace("\n", " ").strip()
-
-    field_patterns = [
-        (r'(?:Título|Juego)\s*:\s*', 'title'),
-        (r'Modo\s+aplicado\s*:\s*', 'modo'),
-        (r'Tipo\s+de\s+post\s*:\s*', 'tipo'),
-        (r'sistema\s*:\s*', 'sistema'),
-        (r'genero\s*:\s*', 'genero'),
-        (r'epoca\s*:\s*', 'epoca'),
-        (r'Ángulo\s+Editorial\s*:\s*', 'angulo_editorial'),
-        (r'Justificación\s*:\s*', 'justificacion'),
-        (r'Keyword\s+Sugerida\s*:\s*', 'keyword_sugerida'),
-        (r'Factor\s+de\s+Oportunidad\s*:\s*', 'factor_oportunidad'),
-    ]
-
-    markers = []
-    for pattern, key in field_patterns:
-        for m in re.finditer(pattern, text, re.IGNORECASE):
-            markers.append((m.end(), key, m.start()))
-    markers.sort(key=lambda x: x[0])
-
-    for i, (end_pos, key, start_pos) in enumerate(markers):
-        value_end = markers[i + 1][2] if i + 1 < len(markers) else len(text)
-        value = text[end_pos:value_end].strip().rstrip('-').strip()
-        if value.endswith('|'):
-            value = value[:-1].strip()
-        fields[key] = value
-
-    return fields
-
-
-def cmd_migrate_ideas(args):
-    print("Migrando post ideas desde post-ideas.md...")
-    with open(IDEAS_FILE, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    ideas = []
-    in_table = False
-
-    for line in content.split("\n"):
-        line = line.strip()
-        if "| # | Título" in line:
-            in_table = True
-            continue
-        if in_table and line.startswith("|"):
-            parts = [p.strip() for p in line.split("|")]
-            parts = [p for p in parts if p]
-            if len(parts) >= 7 and parts[0] not in ("#", "—"):
-                try:
-                    num = int(parts[0])
-                except ValueError:
-                    continue
-                title = parts[1].strip()
-                sistema = parts[2].strip()
-                tipo = parts[3].strip()
-                estado = parts[4].strip()
-                updated_at = parts[5].strip()
-                prompt = parts[6].strip() if len(parts) > 6 else ""
-
-                if estado == "en uso":
-                    estado = "en_uso"
-
-                parsed = parse_prompt(prompt)
-
-                idea = {
-                    "num": num,
-                    "title": title,
-                    "sistema": sistema,
-                    "tipo": tipo,
-                    "estado": estado,
-                    "updated_at": updated_at,
-                    "prompt": prompt,
-                    "modo": parsed.get("modo", "editorial"),
-                    "genero": parsed.get("genero", ""),
-                    "epoca": parsed.get("epoca", ""),
-                    "angulo_editorial": parsed.get("angulo_editorial", ""),
-                    "justificacion": parsed.get("justificacion", ""),
-                    "keyword_sugerida": parsed.get("keyword_sugerida"),
-                    "factor_oportunidad": parsed.get("factor_oportunidad"),
-                }
-                ideas.append(idea)
-        elif in_table and not line.startswith("|") and line and not line.startswith("##") and not line.startswith("---"):
-            continue
-
-    print(f"  Encontradas {len(ideas)} ideas")
-
-    conn = get_conn()
-    inserted = 0
-    errors = []
-
-    valid_tipos = ("Review", "Historias", "Listas")
-    valid_estados = ("pendiente", "en_uso", "publicado")
-    valid_modos = ("editorial", "seo_master")
-
-    for idea in ideas:
-        tipo = idea["tipo"]
-        if tipo not in valid_tipos:
-            closest = {"Histogram": "Historias"}.get(tipo, tipo)
-            if closest in valid_tipos:
-                tipo = closest
-            else:
-                errors.append(f"Idea #{idea['num']}: tipo inválido '{tipo}'")
-                continue
-
-        estado = idea["estado"]
-        if estado not in valid_estados:
-            errors.append(f"Idea #{idea['num']}: estado inválido '{estado}'")
-            continue
-
-        modo = idea["modo"].lower()
-        if modo not in valid_modos:
-            modo = "editorial"
-
-        angulo = idea["angulo_editorial"] or f"Post sobre {idea['title']}"
-        justificacion = idea["justificacion"] or None
-        keyword = idea["keyword_sugerida"] or None
-        factor = idea["factor_oportunidad"] or None
-        genero = idea["genero"] or None
-        epoca = idea["epoca"] or None
-
-        try:
-            conn.execute(
-                """INSERT OR IGNORE INTO post_ideas
-                   (title, sistema, tipo, estado, modo, angulo_editorial, justificacion,
-                    keyword_sugerida, factor_oportunidad, genero, epoca, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (idea["title"], idea["sistema"], tipo, estado, modo, angulo,
-                 justificacion, keyword, factor, genero, epoca,
-                 idea["updated_at"], idea["updated_at"]),
-            )
-            inserted += 1
-        except Exception as e:
-            errors.append(f"Idea #{idea['num']} '{idea['title']}': {e}")
-
-    conn.commit()
-    conn.close()
-
-    print(f"  Insertadas {inserted} ideas en la base de datos")
-    if errors:
-        print(f"  {len(errors)} errores:")
-        for err in errors:
-            print(f"    - {err}")
-
-    result = {"ok": True, "inserted": inserted, "errors": errors}
-    print(json.dumps(result, ensure_ascii=False))
-
-
-# ============================================================
 # SYNC TAGS WP
 # ============================================================
 
@@ -749,7 +582,6 @@ def main():
 
     sub.add_parser("init", help="Crear tablas y datos iniciales (tag_groups, preserva internal_links)")
     sub.add_parser("migrate-tags", help="Migrar tags desde tags-usables.md (resuelve wp_ids via WP API)")
-    sub.add_parser("migrate-ideas", help="Migrar post ideas desde post-ideas.md")
     sub.add_parser("sync-tags-wp", help="Sincronizar wp_ids de tags con WordPress")
     sub.add_parser("sync-posts-wp", help="Poblar posts y post_tags desde WordPress")
 
@@ -758,7 +590,6 @@ def main():
     commands = {
         "init": cmd_init,
         "migrate-tags": cmd_migrate_tags,
-        "migrate-ideas": cmd_migrate_ideas,
         "sync-tags-wp": cmd_sync_tags_wp,
         "sync-posts-wp": cmd_sync_posts_wp,
     }
