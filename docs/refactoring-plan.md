@@ -170,7 +170,7 @@ Cambios realizados:
 - ~`memory/post-ideas.md` → `memory/blog.db` (tabla `post_ideas`)~ Cambiado a referencia a la tabla `post_ideas` de la DB
 - ~`memory/tags-usables.md` → `memory/blog.db` (tabla `tags`)~ Cambiado a referencia a la tabla `tags` de la DB
 
-### 2.4 — `.opencode/rules/env-access.md`
+### ✅ 2.4 — `.opencode/rules/env-access.md`
 
 Sin cambios — no referencia archivos de memoria.
 
