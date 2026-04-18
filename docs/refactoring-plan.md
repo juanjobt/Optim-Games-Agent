@@ -81,7 +81,7 @@ Todos los comandos devuelven JSON para que el agente los parsee.
 
 ---
 
-## Fase 1 — Migración de Datos
+## ✅ Fase 1 — Migración de Datos
 
 ### ✅ 1.1 — Ejecutar migración inicial
 
@@ -110,7 +110,7 @@ Cambios realizados:
 - ✅ Eliminado código muerto: `get_post_metadata()`, `calculate_score()`, `search_posts_by_tag()`, `parse_tag_with_type()`, `wp_get_with_headers()`
 - ✅ Eliminado `cmd_init` del CLI y de la documentación
 
-### 1.3 — Poblar `wp_id` en `tags`
+### ✅ 1.3 — Poblar `wp_id` en `tags`
 
 Para cada tag en la tabla `tags`:
 1. Derivar el slug esperado del `name`
@@ -118,13 +118,11 @@ Para cada tag en la tabla `tags`:
 3. Si no existe en WordPress, crear con `wp_add_tag(name=...)` y registrar el ID devuelto
 4. Actualizar la fila en `tags` con `wp_id` y `slug`
 
-### 1.4 — Poblar `post_wp_id` en `post_ideas`
+### ✅ 1.4 — Poblar `post_wp_id` en `post_ideas`
 
-Para las 28 ideas con estado `publicado`:
-1. Buscar el post en WordPress por slug o título
-2. Registrar el `wp_id` en `post_ideas.post_wp_id`
+Las 28 ideas con estado `publicado` fueron vinculadas con sus posts en WordPress mediante matching local contra la tabla `posts` (sin llamadas a la API). Solo 1 post (Freddy Hardest, wp_id=15) no tiene idea correspondiente en la cola editorial, por haberse publicado fuera del sistema.
 
-### 1.5 — Poblar `posts` y `post_tags`
+### ✅ 1.5 — Poblar `posts` y `post_tags`
 
 ```bash
 python3 memory/scripts/db_init.py sync-posts-wp
