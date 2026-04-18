@@ -132,7 +132,7 @@ Consulta todos los posts publicados en WordPress y los inserta en `posts`. Tambi
 
 ---
 
-## Fase 2 — Actualizar Reglas
+## ✅ Fase 2 — Actualizar Reglas
 
 ### ✅ 2.1 — `.opencode/rules/post-ideas-memory.md` → `.opencode/rules/memory-system.md`
 
@@ -158,7 +158,7 @@ La regla `post-ideas-memory.md` estaba escrita enteramente alrededor de un archi
 - Reglas generales: no editar DB directamente, no usar archivos markdown legacy
 - Archivos legacy en `memory/backup/` como referencia histórica
 
-### 2.2 — `.opencode/rules/internal-links-insertion.md`
+### ✅ 2.2 — `.opencode/rules/internal-links-insertion.md`
 
 Cambios menores:
 - Referenciar que `score_weight` ahora viene de `tag_groups` en la DB
