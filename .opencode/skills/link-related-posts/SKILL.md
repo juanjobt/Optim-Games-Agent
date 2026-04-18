@@ -7,7 +7,7 @@ description: Gestiona los internal links entre posts de Optim Pixel. Busca posts
 
 Esta skill gestiona los **internal links** entre posts de Optim Pixel. La búsqueda de posts relacionados se realiza contra la base de datos local (`memory/blog.db`), usando tags y sus grupos para calcular el score de similitud. Solo se guarda un log de los enlaces insertados en SQLite.
 
-**Para la inserción editorial de enlaces** (dónde y cómo insertar los links en el HTML del post), consulta la regla `internal-links-insertion`.
+**Para la inserción editorial de enlaces** (dónde y cómo insertar los links en el HTML del post), lee el archivo `.opencode/skills/link-related-posts/reference/internal-links-insertion.md` antes de insertar任何 enlace. Este archivo contiene las reglas editoriales obligatorias.
 
 **Antes de usar esta skill**, la base de datos debe estar inicializada y sincronizada con `db_init.py init`, `db_init.py migrate-tags`, `db_init.py sync-tags-wp` y `db_init.py sync-posts-wp`.
 
@@ -119,7 +119,7 @@ python3 .opencode/skills/link-related-posts/scripts/manage-internal-links.py sta
 
 1. Buscar relacionados con `find-related --wp-id N` (sin `--tags`, se obtienen del post automáticamente)
 2. Obtener el contenido actual con `get-post-content`
-3. **Insertar los enlaces siguiendo la regla `internal-links-insertion`**
+3. **Insertar los enlaces siguiendo las reglas de inserción**
 4. Registrar cada link creado con `log-link`
 
 ### Contexto B: Mejorar posts existentes (/link-posts)
@@ -128,7 +128,7 @@ python3 .opencode/skills/link-related-posts/scripts/manage-internal-links.py sta
 2. Para cada post:
    a. Obtener los tags del post desde la DB local o el contenido
    b. Buscar relacionados con `find-related --wp-id N`
-   c. **Insertar los enlaces siguiendo la regla `internal-links-insertion`**
+   c. **Insertar los enlaces siguiendo las reglas de inserción**
    d. Registrar cada link creado con `log-link`
 
 ---
