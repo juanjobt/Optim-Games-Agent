@@ -178,7 +178,7 @@ Sin cambios — no referencia archivos de memoria.
 
 ## Fase 3 — Actualizar Skills
 
-### 3.1 — `.opencode/skills/publish-wordpress/SKILL.md`
+### ✅ 3.1 — `.opencode/skills/publish-wordpress/SKILL.md`
 
 **Paso 2.2 — Consultar memoria de tags:**
 
@@ -216,7 +216,7 @@ Actualizar referencia a la rule `post-ideas-memory` para que apunte a la DB en v
 
 ## Fase 4 — Actualizar Comandos
 
-### 4.1 — `.opencode/commands/create-post.md`
+### ✅ 4.1 — `.opencode/commands/create-post.md`
 
 **Paso 0 — Determinar el tema:**
 

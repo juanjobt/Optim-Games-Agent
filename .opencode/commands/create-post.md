@@ -18,37 +18,63 @@ Antes de hacer ninguna pregunta, evalúa si ya se ha proporcionado un juego o te
 **Si el usuario ya especificó un juego o tema:** continúa directamente al Paso 1 con esos datos.
 
 **Si el usuario NO especificó nada:**
-1. Lee `memory/post-ideas.md`
-2. Localiza la primera entrada con estado `pendiente` (el `#` más bajo)
-3. Extrae el campo `Prompt` — contiene todos los datos necesarios para este post
-4. Cambia su estado a `en uso` y actualiza `Última actualización`
-5. Informa brevemente antes de continuar:
 
-```
-📋 Usando idea de la cola:
-Título: [título] | Tipo: [tipo] | Sistema: [sistema]
-Prompt guardado listo para usar.
-```
+1. Consultar la cola de ideas pendientes:
+   ```bash
+   python3 memory/scripts/db_query.py get-pending-ideas --limit 1
+   ```
+2. Si hay resultados, tomar la primera idea y cambiar su estado a `en_uso`:
+   ```bash
+   python3 memory/scripts/db_query.py update-idea-state --id IDEA_ID --state en_uso
+   ```
+3. Guardar el `id` de la idea para usarlo en los Pasos 6 y 8 (reversión o confirmación).
+4. Informar brevemente antes de continuar:
+   ```
+   📋 Usando idea de la cola:
+   Título: [title] | Tipo: [tipo] | Sistema: [sistema] | Modo: [modo]
+   ```
 
-**Si la memoria está vacía:** pregunta al usuario directamente.
+**Si no hay ideas pendientes:** pregunta al usuario directamente.
+
+### Campos disponibles en la respuesta JSON
+
+La idea devuelta por `get-pending-ideas` contiene campos estructurados listos para usar:
+
+| Campo | Descripción | Ejemplo |
+|-------|-------------|---------|
+| `id` | ID de la idea (para actualizar estado) | 5 |
+| `title` | Título del juego o tema | "Chrono Trigger" |
+| `sistema` | Plataforma principal | "Super Nintendo" |
+| `tipo` | Tipo de post: `Review`, `Historias` o `Listas` | "Review" |
+| `modo` | Modo de generación: `editorial` o `seo_master` | "editorial" |
+| `angulo_editorial` | Gancho o enfoque del post | "La revolución del Active Time Battle" |
+| `justificacion` | Por qué es relevante este post | "Uno de los RPGs más influyentes..." |
+| `keyword_sugerida` | Keyword SEO (solo si modo=seo_master) | "chrono trigger snes" |
+| `factor_oportunidad` | Factor de oportunidad SEO | "Alto volumen de búsqueda" |
+| `genero` | Género del juego | "RPG" |
+| `epoca` | Época o década | "Años 90" |
+| `post_wp_id` | ID del post en WP (null si no publicado) | null |
+
+**No hace falta parsear ningún campo monolítico** — los datos ya están descompuestos listos para usar.
 
 ---
 
 ## Paso 1 — Recopilar información
 
-**Si el post viene de la memoria (campo Prompt):**
-- Parsea el campo `Prompt` de la entrada para extraer:
-  - Título
-  - Tipo de post (Review / Historias / Listas)
-  - Sistema
-  - Género
-  - Época
-  - Ángulo Editorial
-  - Justificación
-  - Keyword Sugerida (si modo=seo_master)
-  - Factor de Oportunidad (si modo=seo_master)
-- Usa estos datos directamente sin preguntar de nuevo.
-- Solo pide clarification si algo no queda claro del parseo.
+**Si el post viene de la memoria (Paso 0):**
+
+Los campos ya están disponibles como JSON estructurado. Úsalos directamente:
+- `title` → nombre del juego
+- `tipo` → tipo de post (Review / Historias / Listas)
+- `sistema` → sistema/plataforma
+- `genero` → género (si existe)
+- `epoca` → época (si existe)
+- `angulo_editorial` → enfoque del post
+- `justificacion` → por qué es relevante
+- `keyword_sugerida` → keyword si modo=seo_master
+- `factor_oportunidad` → factor SEO si modo=seo_master
+
+Solo pide aclaración si algo no queda claro en los datos.
 
 **Si el usuario especificó el tema directamente:**
 - Pide los datos que falten:
@@ -99,7 +125,15 @@ Genera estos campos que se usarán al publicar en WordPress:
 
 ## Paso 4.5 — Consolidar game_data
 
-Reunir en un solo objeto los datos del juego recopilados en los Pasos 0-2. Este objeto se pasará a la skill `publish-wordpress` para que resuelva tags automáticamente:
+Reunir en un solo objeto los datos del juego recopilados en los Pasos 0-2. Este objeto se pasará a la skill `publish-wordpress` para que resuelva tags automáticamente desde la base de datos local.
+
+**Mapeo de tipos de post:**
+
+| `post_ideas.tipo` | `game_data.type` | Categoría WordPress |
+|--------------------|------------------|---------------------|
+| Review | `"review"` | `reviews` |
+| Historias | `"historia"` | `historias` |
+| Listas | `"lista"` | `listas` |
 
 ```
 game_data = {
@@ -115,7 +149,7 @@ game_data = {
 }
 ```
 
-Los tags NO se generan aquí — la skill `publish-wordpress` se encarga de mapear game_data a tags usando `memory/tags-usables.md`.
+Los tags NO se generan aquí — la skill `publish-wordpress` se encarga de mapear `game_data` a tags consultando la base de datos local (`memory/blog.db`) vía `db_query.py`.
 
 ---
 
@@ -205,7 +239,7 @@ El agente decide la posición exacta de cada imagen en el texto, siguiendo las i
 
 **Reglas de inserción:**
 - Nunca insertar imágenes en el primer párrafo (el gancho)
-- Máximo 1 imagen de contenido por párrafo/sepcción
+- Máximo 1 imagen de contenido por párrafo/sección
 - Insertar solo las imágenes que encajen editorialmente — no forzar
 - Si no se encontró ninguna imagen de contenido, publicar sin ellas y anotarlo
 
@@ -232,7 +266,10 @@ Palabras: ~[número]
 ```
 
 - **revisar** → pregunta qué cambiar y vuelve al paso correspondiente
-- **cancelar** → detén el proceso; si la entrada estaba `en uso` en memoria, reviértela a `pendiente`
+- **cancelar** → detén el proceso; si la idea venía de la memoria, revierte su estado:
+  ```bash
+  python3 memory/scripts/db_query.py update-idea-state --id IDEA_ID --state pendiente
+  ```
 - **sí** → continúa al Paso 7
 
 ---
@@ -262,9 +299,11 @@ Invocar la skill `publish-wordpress` con los siguientes inputs:
 
 La skill se encarga de:
 1. Resolver la categoría (type → slug → ID de WordPress)
-2. Generar y validar tags a partir de game_data contra `memory/tags-usables.md`
-3. Crear el post con todos los metadatos
-4. Subir y asignar la imagen de portada (si hay URL)
+2. Generar y validar tags a partir de `game_data` contra `memory/blog.db` vía `db_query.py`
+3. Resolver IDs de tags: si están en la DB local con `wp_id`, usarlos directamente; si no, crear en WordPress y registrar en la DB
+4. Crear el post con todos los metadatos
+5. Subir y asignar la imagen de portada (si hay URL)
+6. Registrar el post y sus tags en la base de datos local (`add-post`, `add-post-tags`)
 
 ---
 
@@ -291,12 +330,29 @@ Carga la skill `set-videogame-schema` y ejecútala con los datos disponibles:
 
 ## Paso 8 — Actualizar la memoria
 
-**Si el post venía de la memoria:**
-1. Cambia el estado de `en uso` a `publicado`
-2. Actualiza `Última actualización`
+**Si el post venía de la memoria (Paso 0):**
+
+Actualizar el estado de la idea a `publicado` y vincularla con el ID del post en WordPress:
+
+```bash
+python3 memory/scripts/db_query.py update-idea-state --id IDEA_ID --state publicado --wp-id POST_ID
+```
+
+Donde `IDEA_ID` es el `id` de la idea obtenido en el Paso 0 y `POST_ID` es el ID devuelto por WordPress en el Paso 7.
 
 **Si el post fue especificado directamente por el usuario:**
-- No es obligatorio, pero si tiene valor para el historial (evitar cubrir el mismo juego en el futuro), añádelo con estado `publicado`
+
+No es obligatorio, pero si tiene valor para el historial (evitar cubrir el mismo juego en el futuro), se puede registrar en dos pasos:
+
+```bash
+# 1. Crear la idea (siempre nace como 'pendiente')
+python3 memory/scripts/db_query.py add-idea --title "Nombre del Juego" --sistema "Sistema" --tipo Review --modo editorial --angulo "Breve descripción"
+
+# 2. Actualizar a 'publicado' vinculando el post
+python3 memory/scripts/db_query.py update-idea-state --id IDEA_ID --state publicado --wp-id POST_ID
+```
+
+**Nota:** El registro del post y sus tags en la DB local ya lo gestiona la skill `publish-wordpress` en su Paso 5 (add-post + add-post-tags). No duplicar aquí.
 
 ---
 
@@ -313,7 +369,7 @@ Carga la skill `set-videogame-schema` y ejecútala con los datos disponibles:
 🔍 Excerpt: [excerpt]
 🗂 Schema VideoGame: ✓ configurado (schema_id: [id]) o ⚠️ pendiente — [motivo]
 🕐 Publicado: [fecha y hora]
-💾 Memoria: entrada actualizada a `publicado`
+💾 Memoria: idea #IDEA_ID actualizada a `publicado` (post_wp_id: POST_ID)
 ─────────────────────────────
 ```
 
