@@ -201,7 +201,7 @@ Simplificación importante:
 - Solo llamar a `wp_list_tags` / `wp_add_tag` para tags que NO estén en la DB local
 - Tras crear un tag en WordPress, insertarlo en la DB con su `wp_id`
 
-### 3.2 — `.opencode/skills/link-related-posts/SKILL.md`
+### ✅ 3.2 — `.opencode/skills/link-related-posts/SKILL.md`
 
 Actualizar:
 - Documentar que los scores de peso provienen de `tag_groups.score_weight` en la DB
