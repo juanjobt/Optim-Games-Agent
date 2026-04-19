@@ -1,16 +1,16 @@
 ---
 name: search-game-candidates
-description: Busca juegos clásicos candidatos para Optim Pixel. Posee dos modos de operación: uno enfocado en la calidad editorial pura (Nostalgia) y otro en el posicionamiento estratégico (SEO/Tráfico).
+description: Busca juegos clásicos candidatos para Optim Pixel. Posee dos modos de operación: uno enfocado en la calidad editorial pura (Nostalgia) y otro en el posicionamiento estratégico (SEO/Tráfico). Filtra duplicados contra la base de datos local antes de devolver resultados.
 metadata:
   author: optimbyte
-  version: "2.0"
+  version: "3.0"
 ---
 
 # Skill: Search Game Candidates (Hybrid Mode)
 
-Busca y evalúa juegos clásicos para convertirlos en contenido del blog Optim Pixel. La skill ajusta su profundidad de análisis según el modo seleccionado.
+Busca y evalúa juegos clásicos para convertirlos en contenido del blog Optim Pixel. La skill ajusta su profundidad de análisis según el modo seleccionado y filtra candidatos que ya existen como ideas o posts publicados.
 
-La gestión de la memoria (evitar repeticiones, actualizar estados) la gestiona la rule `post-ideas-memory`.
+**Fuente de verdad para memoria:** `memory/blog.db` (SQLite). La gestión de ideas y deduplicación se realiza mediante `memory/scripts/db_query.py` siguiendo la rule `memory-system`.
 
 ---
 
@@ -19,12 +19,25 @@ La gestión de la memoria (evitar repeticiones, actualizar estados) la gestiona 
 - `sistema` (opcional): Consola o sistema (Ej: Super Nintendo, Mega Drive, Arcade, PC, Game Boy, PlayStation).
 - `genero` (opcional): Género del juego (Ej:  RPG, Plataformas, Beat em up, Puzzle, Aventura gráfica).
 - `epoca` (opcional): Año o década (Ej: Años 80, Años 90, o un año concreto como 1993).
-- `tipo_post` (opcional): Review / Historias / Listas.
-- `cantidad` (por defecto 10): Número de candidatos iniciales a evaluar.
+- `tipo` (opcional): Review / Historias / Listas.
+- `cantidad` (por defecto 10): Número de candidatos finales a devolver.
 - `enfoque_tematico` (opcional): Tema o enfoque específico (Ej: juegos infravalorados, sagas olvidadas, fracasos adelantados a su tiempo)
-- `modo_estrategia` (opcional): 
+- `modo` (opcional):
     - `editorial` (Predeterminado): Enfoque en calidad narrativa, hitos históricos y valor emocional.
     - `seo_master`: Enfoque en volumen de búsqueda, baja competencia y detección de "huecos" en Google.
+
+---
+
+## Herramientas de memoria
+
+Ejecutar con `python3 memory/scripts/db_query.py`:
+
+| Comando | Uso en esta skill |
+|---------|-------------------|
+| `search "keyword"` | Buscar si un juego ya existe como idea o post en la DB |
+| `get-pending-ideas [--limit N]` | Listar ideas pendientes para evitar duplicados |
+| `get-pending-ideas --tipo Review` | Listar ideas pendientes filtradas por tipo |
+| `stats` | Ver cuántas ideas/posts existen en total |
 
 ---
 
@@ -34,7 +47,7 @@ La gestión de la memoria (evitar repeticiones, actualizar estados) la gestiona 
 *Prioridad: Branding y Calidad de Contenido.*
 1. **Selección:** Busca juegos que sean "piedras angulares" de su género o que tengan anécdotas de desarrollo legendarias o impacto cultural relevante. Con variedad de sistema, época y tipo_post.
 2. **Contenido:** Siempre debe haber un dato que demuestre conocimiento profundo (ej: "el último juego lanzado para X consola")
-3. **Filtro:** Evita juegos excesivamente genéricos. No propongas árticulos muy publicados.
+3. **Filtro:** Evita juegos excesivamente genéricos. No propongas artículos muy publicados.
 4. **Meta:** Crear un artículo que posicione a Optim Pixel como un sitio de referencia en cultura e historia.
 
 ### MODO B: SEO Master (Estratégico)
@@ -60,8 +73,7 @@ La gestión de la memoria (evitar repeticiones, actualizar estados) la gestiona 
 
 ## Proceso
 
-### Paso 0 — Generar pool de candidatos
-*modo_estrategia: solo para seo_master*
+### Paso 0 — Sincronización con tendencia (solo `seo_master`)
 
 Sincronización con el mercado: Antes de buscar candidatos, mira qué juegos están siendo tendencia hoy (por remakes, secuelas o series de TV). Busca juegos clásicos relacionados con esa tendencia para aprovechar el "efecto arrastre" del SEO.
 
@@ -75,10 +87,33 @@ Genera internamente un pool amplio (mínimo el doble de la cantidad solicitada) 
 - ¿Tiene impacto cultural relevante?
 - ¿Encaja con la voz del blog Optim Pixel?
 
-### Paso 2 — Evaluación de SEO
-*modo_estrategia: solo para seo_master*
+### Paso 1.5 — Deduplicación contra la base de datos
 
-Para cada candidato en el pool inicial, el agente debe buscar (simular búsqueda o usar herramientas si las tienes conectadas) los siguientes indicadores:
+**OBLIGATORIO** — Antes de continuar con la evaluación, filtrar candidatos que ya existen en la memoria del blog.
+
+Para cada candidato del pool, verificar si ya existe como idea o post publicado:
+
+```bash
+python3 memory/scripts/db_query.py search "Nombre del juego"
+```
+
+Este comando busca en `post_ideas` (todos los estados), `posts` y `tags`. Si el título del juego aparece en los resultados como idea o post, **eliminar ese candidato del pool**.
+
+También es útil revisar las ideas pendientes para evitar solapamientos temáticos:
+
+```bash
+python3 memory/scripts/db_query.py get-pending-ideas --limit 50
+```
+
+**Reglas de filtrado:**
+- Si el juego ya tiene una idea en estado `pendiente` o `en_uso` → eliminar del pool
+- Si el juego ya tiene un post publicado → eliminar del pool
+- Si un juego muy similar ya está como idea (ej: mismo título distinta plataforma) → considerar si el ángulo editorial es suficientemente diferente; si no lo es, eliminar
+- Si el filtro elimina demasiados candidatos, volver al Paso 1 para generar más y repetir la deduplicación
+
+### Paso 2 — Evaluación de SEO (solo `seo_master`)
+
+Para cada candidato en el pool filtrado, el agente debe buscar (simular búsqueda o usar herramientas si las tienes conectadas) los siguientes indicadores:
 
 Volumen de nostalgia vs. Competencia: ¿Es un juego con una comunidad activa (ej: mods, speedruns) pero cuyos artículos en Google son solo wikis antiguas o reseñas de hace 10 años?
 
@@ -88,7 +123,7 @@ Intención de búsqueda de "Solución": Priorizar juegos con mecánicas compleja
 
 ### Paso 3 — Seleccionar y enriquecer
 
-Del pool, seleccionar los mejores según potencial editorial.
+Del pool filtrado, seleccionar los mejores según potencial editorial.
 
 ## Criterios de calidad editorial
 
@@ -111,17 +146,37 @@ Devolver la lista enriquecida al workflow que invocó la skill.
 
 ## 📝 Formato de Salida (Output)
 
-Para cada candidato seleccionado, genera una ficha con este formato exacto:
+Para cada candidato seleccionado, genera una ficha con este formato exacto. Los nombres de campos coinciden con los parámetros de `db_query.py add-idea` para que el comando que invoque esta skill pueda almacenarlos directamente.
 
-- **Título:** [Nombre completo]
-- **Modo aplicado:** [editorial / seo_master]
-- **Tipo de post:** [Review / Historias / Listas]
-- **sistema:** [Sistema principal]
-- **genero:** [Género principal]
-- **epoca:**  [Año o década]
-- **Ángulo Editorial:** [Descripción del gancho narrativo en una frase]
-- **Justificación:** [Breve explicación de 1-2 frases sobre el valor de este candidato]
-- **Keyword Sugerida (Solo si modo=seo_master):** [Palabra clave de larga cola]
-- **Factor de Oportunidad (Solo si modo=seo_master):** [Por qué este post atraerá tráfico: competencia baja, tendencia actual, búsqueda específica no resuelta]
+- **title:** [Nombre completo del juego]
+- **modo:** [editorial | seo_master]
+- **tipo:** [Review | Historias | Listas]
+- **sistema:** [Sistema principal — exactamente como aparece en la tabla `tags` del grupo `sistema`]
+- **genero:** [Género principal — exactamente como aparece en la tabla `tags` del grupo `genero`]
+- **epoca:** [Año o década — ej: Años 90, 1995]
+- **angulo_editorial:** [Descripción del gancho narrativo en una frase]
+- **justificacion:** [1-2 frases sobre el valor de este candidato]
+- **keyword_sugerida:** [Palabra clave de larga cola — solo si modo=seo_master]
+- **factor_oportunidad:** [Por qué este post atraerá tráfico — solo si modo=seo_master]
+
+### Mapeo a `db_query.py add-idea`
+
+El comando que reciba estos datos puede almacenarlos directamente:
+
+```bash
+python3 memory/scripts/db_query.py add-idea \
+  --title "Nombre del juego" \
+  --sistema "Super Nintendo" \
+  --tipo Review \
+  --modo editorial \
+  --angulo "Gancho narrativo" \
+  --justificacion "Por qué es relevante" \
+  --keyword "long-tail keyword" \
+  --factor "Factor de oportunidad" \
+  --genero "RPG" \
+  --epoca "Años 90"
+```
+
+Los campos `keyword` y `factor` solo se incluyen cuando `modo=seo_master`.
 
 ---

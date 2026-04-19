@@ -208,9 +208,18 @@ Actualizar:
 - Los tags de un post pueden obtenerse localmente de `post_tags` en vez de la API
 - El script `manage-internal-links.py` ha sido refactorizado (Fase 1.2)
 
-### 3.3 — `.opencode/skills/search-game-candidates/SKILL.md`
+### ✅ 3.3 — `.opencode/skills/search-game-candidates/SKILL.md`
 
-Actualizar referencia a la rule `post-ideas-memory` para que apunte a la DB en vez de markdown.
+Cambios realizados:
+
+- Eliminada referencia a la rule `post-ideas-memory` → sustituida por `memory-system` y `db_query.py`
+- Añadida sección "Herramientas de memoria" con comandos `db_query.py` relevantes (`search`, `get-pending-ideas`, `stats`)
+- Añadido **Paso 1.5 — Deduplicación contra la base de datos**: paso obligatorio que consulta la DB para filtrar candidatos que ya existen como ideas o posts publicados
+- Renombrados los campos del formato de salida para coincidir exactamente con los parámetros de `db_query.py add-idea` (`title`, `modo`, `tipo`, `sistema`, `genero`, `epoca`, `angulo_editorial`, `justificacion`, `keyword_sugerida`, `factor_oportunidad`)
+- Añadida sección "Mapeo a `db_query.py add-idea`" con ejemplo de uso directo
+- Parametro `tipo_post` renombrado a `tipo` para coincidir con el enum de la DB
+- Parametro `modo_estrategia` renombrado a `modo` para coincidir con el enum de la DB
+- Versión actualizada de 2.0 a 3.0
 
 ---
 
