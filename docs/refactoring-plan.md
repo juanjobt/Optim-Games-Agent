@@ -176,7 +176,7 @@ Sin cambios — no referencia archivos de memoria.
 
 ---
 
-## Fase 3 — Actualizar Skills
+## ✅ Fase 3 — Actualizar Skills
 
 ### ✅ 3.1 — `.opencode/skills/publish-wordpress/SKILL.md`
 
@@ -223,7 +223,7 @@ Cambios realizados:
 
 ---
 
-## Fase 4 — Actualizar Comandos
+## ✅ Fase 4 — Actualizar Comandos
 
 ### ✅ 4.1 — `.opencode/commands/create-post.md`
 
@@ -246,19 +246,21 @@ Los campos ya están descompuestos en la DB. Ya no hace falta parsear un Prompt 
 |-------|---------|
 | Cambiar estado en `memory/post-ideas.md` | `db_query.py update-idea-state --id N --state publicado --wp-id N` |
 
-### 4.2 — `.opencode/commands/generate-post-ideas.md`
+### ✅ 4.2 — `.opencode/commands/generate-post-ideas.md`
 
-**Paso 3 — Guardar en memoria:**
+**Cambios realizados:**
 
-| Antes | Después |
-|-------|---------|
-| Añadir filas a `memory/post-ideas.md` | `db_query.py add-idea --title "..." --sistema "..." --tipo Review --modo editorial --angulo "..." ...` |
-| Seguir formato de tabla markdown | Campos estructurados separados |
-
-**Paso 2 — Formato del prompt:**
-
-El prompt generado ya no es un campo monolítico. Los datos se almacenan en campos separados:
-- `title`, `sistema`, `tipo`, `modo`, `angulo_editorial`, `justificacion`, `keyword_sugerida`, `factor_oportunidad`, `genero`, `epoca`
+| Cambio | Detalle |
+|--------|---------|
+| Frontmatter description | `memory/post-ideas.md` → `memory/blog.db` via `db_query.py` |
+| Parámetros | `tipo_post` → `tipo`, `modo_estrategia` → `modo` (alineado con DB schema y skill v3) |
+| Paso 1 | Añadida nota sobre deduplicación automática (Paso 1.5 de skill v3) |
+| Paso 2 | El "prompt monolítico" desaparece → tabla de campos que mapean a `db_query.py add-idea` |
+| Paso 3 | Escribir en `memory/post-ideas.md` → ejecutar `db_query.py add-idea` por cada idea |
+| Paso 3 | Añadido manejo de errores por UNIQUE constraint (title duplicado) |
+| Paso 4 | Presentación como fichas estructuradas en vez de "prompt listo para copiar" |
+| Caso especial | Verificación de ideas pendientes → `db_query.py stats` en vez de leer markdown |
+| Referencia a rule | `post-ideas-memory` → `memory-system` |
 
 ---
 
