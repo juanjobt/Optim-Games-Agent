@@ -93,24 +93,15 @@ Devuelve estadísticas generales: total de posts, total de enlaces, posts sin li
 
 ## Flujo de uso
 
-### Contexto A: Después de publicar un post (create-post)
+Esta skill procesa **un único post**. Para procesar múltiples posts en lote, usar el comando `/link-posts`.
 
 1. Buscar relacionados con `find-related --wp-id N`
-2. Obtener el contenido actual con `get-post-content` o `wp_get_post`
-3. **Insertar los enlaces siguiendo las reglas de inserción**
-4. Registrar cada link creado con `db_query.py add-link --from N --to N --score N`
-5. Actualizar el post en WordPress con `wp_update_post`
-
-### Contexto B: Mejorar posts existentes (/link-posts)
-
-1. Obtener lista de posts que necesitan links: `needs-links --limit 20`
-2. Para cada post:
-   a. Buscar relacionados con `find-related --wp-id N`
-   b. Verificar enlaces existentes con `db_query.py get-links --wp-id N`
-   c. Obtener el contenido actual con `get-post-content`
-   d. **Insertar los enlaces siguiendo las reglas de inserción**
-   e. Registrar cada link creado con `db_query.py add-link --from N --to N --score N`
-   f. Actualizar el post en WordPress con `wp_update_post`
+2. Verificar enlaces existentes con `db_query.py get-links --wp-id N`
+3. Seleccionar los **2 mejores candidatos** (top 2 por score, > 0). Si solo hay 1, insertar 1 enlace.
+4. Obtener el contenido actual con `get-post-content --wp-id N`
+5. **Insertar los enlaces siguiendo las reglas de inserción** del archivo `reference/internal-links-insertion.md`
+6. Registrar cada link creado con `db_query.py add-link --from N --to N --score N`
+7. Actualizar el post en WordPress con `wp_update_post`
 
 ---
 
