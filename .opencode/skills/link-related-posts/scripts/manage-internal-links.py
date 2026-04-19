@@ -157,7 +157,7 @@ def find_related(conn, wp_id, limit):
             "title": post["title"],
             "slug": post["slug"],
             "category_slug": post["category_slug"],
-            "url": f"https://optimpixel.com/{post['slug']}",
+            "url": f"https://optimpixel.com/{post['slug']}/",
             "date": post["published_at"],
             "score": score_data["score"],
             "shared_tags": score_data["shared_tags"],
@@ -206,7 +206,7 @@ def cmd_needs_links(args):
                 "title": row["title"],
                 "slug": row["slug"],
                 "category_slug": row["category_slug"],
-                "url": f"https://optimpixel.com/{row['slug']}",
+                "url": f"https://optimpixel.com/{row['slug']}/",
                 "date": row["published_at"],
                 "outgoing_links": row["outgoing_count"],
             })
