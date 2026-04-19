@@ -133,7 +133,7 @@ El contenido existe, pero nadie lo encuentra si no hay canales. Las apuestas má
 
 ---
 
-## 🟣 Fase 8 — Memoria del agente — migración a DB *(meses 3-5)*
+## ✅ Fase 8 — Memoria del agente — migración a DB *(meses 3-5)*
 
 **Impacto:** Operativo. El `.md` empieza a fallar en torno a los 100-150 posts.
 
@@ -141,8 +141,8 @@ El contenido existe, pero nadie lo encuentra si no hay canales. Las apuestas má
   - **SQLite local** — más simple, sin dependencias externas
   - **Notion API** — más visual, fácil de gestionar manualmente
   - **Supabase** — si se quiere escalar a varios agentes o blogs
-- [ ] Migrar los estados `pendiente / en uso / publicado` al nuevo backend
-- [ ] Actualizar las skills del agente para leer/escribir desde la nueva fuente
+- [x] Migrar los estados `pendiente / en uso / publicado` al nuevo backend
+- [x] Actualizar las skills del agente para leer/escribir desde la nueva fuente
 
 ---
 

@@ -5,7 +5,6 @@ Project optim_pixel {
 
 // ============================================================
 // GRUPOS DE TAGS Y TAGS
-// Migrado desde memory/tags-usables.md
 // ============================================================
 
 Table tag_groups {
@@ -35,7 +34,6 @@ Table tags {
 
 // ============================================================
 // POSTS Y RELACIÓN CON TAGS
-// Catálogo local de posts publicados en WordPress
 // ============================================================
 
 Table posts {
@@ -64,7 +62,6 @@ Table post_tags {
 
 // ============================================================
 // POST IDEAS
-// Cola editorial de ideas para posts, migrado desde memory/post-ideas.md
 // ============================================================
 
 Enum post_tipo {

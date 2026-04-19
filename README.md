@@ -50,7 +50,7 @@ Enfoque: El caos creativo detrás del desarrollo — cómo un equipo de lujo con
 ```
 /create-post
 ```
-Sin datos adicionales, el agente coge automáticamente la primera idea pendiente de `memory/post-ideas.md`.
+Sin datos adicionales, el agente coge automáticamente la primera idea pendiente de `memory/blog.db` (tabla `post_ideas`).
 
 **Tipos de post disponibles:**
 
@@ -64,7 +64,7 @@ Sin datos adicionales, el agente coge automáticamente la primera idea pendiente
 
 ### `/generate-post-ideas`
 
-Genera prompts editoriales listos para usar con `/create-post` y los guarda en `memory/post-ideas.md` con estado `pendiente`.
+Genera prompts editoriales listos para usar con `/create-post` y los guarda en `memory/blog.db` (tabla `post_ideas`) con estado `pendiente`.
 
 **Uso libre** (el agente decide con criterio editorial):
 ```
@@ -78,22 +78,22 @@ Genera prompts editoriales listos para usar con `/create-post` y los guarda en `
 sistema: Mega Drive
 genero: Plataformas
 epoca: Años 90
-tipo_post: Review
+tipo: Review
 cantidad: 10
 enfoque_tematico: que trate sobre sonic
-modo_estrategia: editorial / seo_master
+modo: editorial / seo_master
 ```
 ---
 
 
 ## Sistema de memoria
 
-El archivo `memory/post-ideas.md` es la cola editorial del blog. Registra todas las ideas generadas y su estado.
+La base de datos `memory/blog.db` (SQLite) es la fuente de verdad del agente. Registra ideas de posts, tags, posts publicados y enlaces internos. El schema está definido en `memory/blog.dbml` y las consultas se realizan mediante `memory/scripts/db_query.py`.
 
 | Estado | Significado |
 |--------|-------------|
 | `pendiente` | Generada, lista para usar |
-| `en uso` | Siendo procesada ahora mismo |
+| `en_uso` | Siendo procesada ahora mismo |
 | `publicado` | Ya publicada en WordPress |
 
 ---

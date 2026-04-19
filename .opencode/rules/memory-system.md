@@ -4,8 +4,6 @@
 
 El agente usa `memory/blog.db` (SQLite) como única fuente de verdad para tags, posts, ideas y enlaces internos. El schema está definido en `memory/blog.dbml` — consultar ese archivo si se necesita entender la estructura de las tablas.
 
-Los archivos markdown legacy (`memory/tags-usables.md`, `memory/post-ideas.md`) están en `memory/backup/` y **no deben usarse**.
-
 ---
 
 ## Interfaz de consultas

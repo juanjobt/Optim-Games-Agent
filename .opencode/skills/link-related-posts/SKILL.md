@@ -9,7 +9,7 @@ Esta skill gestiona los **internal links** entre posts de Optim Pixel. Toda la i
 
 **Para la inserción editorial de enlaces** (dónde y cómo insertar los links en el HTML del post), lee el archivo `.opencode/skills/link-related-posts/reference/internal-links-insertion.md` antes de insertar cualquier enlace. Este archivo contiene las reglas editoriales obligatorias.
 
-**Antes de usar esta skill**, la base de datos debe estar inicializada y sincronizada con `db_init.py init`, `db_init.py migrate-tags`, `db_init.py sync-tags-wp` y `db_init.py sync-posts-wp`.
+**Antes de usar esta skill**, la base de datos debe estar inicializada y sincronizada con `db_init.py init`, `db_init.py sync-tags-wp` y `db_init.py sync-posts-wp`.
 
 ---
 

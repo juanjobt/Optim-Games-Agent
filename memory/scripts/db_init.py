@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """
-db_init.py — Inicialización y migración de la base de datos del blog Optim Pixel.
+db_init.py — Inicialización y sincronización de la base de datos del blog Optim Pixel.
 
 Subcomandos:
     python3 memory/scripts/db_init.py init            # Crear tablas y seed de tag_groups
-    python3 memory/scripts/db_init.py migrate-tags   # Migrar tags desde tags-usables.md (resuelve wp_ids via WP API)
     python3 memory/scripts/db_init.py sync-tags-wp    # Sincronizar wp_ids de tags con WordPress
     python3 memory/scripts/db_init.py sync-posts-wp   # Poblar posts y post_tags desde WordPress
 """
@@ -25,7 +24,6 @@ from pathlib import Path
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
 DB_PATH = PROJECT_ROOT / "memory" / "blog.db"
-TAGS_FILE = PROJECT_ROOT / "memory" / "tags-usables.md"
 ENV_PATH = PROJECT_ROOT / ".env"
 
 TAG_GROUPS_SEED = [
@@ -275,152 +273,6 @@ def cmd_init(args):
 
 
 # ============================================================
-# PARSE TAGS-USABLES.MD
-# ============================================================
-
-def parse_tags_file(filepath):
-    with open(filepath, "r", encoding="utf-8") as f:
-        content = f.read()
-
-    groups = {}
-    tags = []
-
-    in_groups = False
-    in_tags = False
-
-    for line in content.split("\n"):
-        line = line.strip()
-        if "## Grupos de Tags" in line:
-            in_groups = True
-            in_tags = False
-            continue
-        if "## Lista de Tags" in line:
-            in_groups = False
-            in_tags = True
-            continue
-        if line.startswith("## ") and "Grupos" not in line and "Lista" not in line:
-            in_groups = False
-            in_tags = False
-            continue
-
-        if in_groups and line.startswith("|"):
-            parts = [p.strip() for p in line.split("|")]
-            parts = [p for p in parts if p]
-            if len(parts) >= 2 and parts[0] not in ("Grupo", "#"):
-                group_name = parts[0]
-                group_desc = parts[1] if len(parts) > 1 else ""
-                groups[group_name] = group_desc
-
-        if in_tags and line.startswith("|"):
-            parts = [p.strip() for p in line.split("|")]
-            parts = [p for p in parts if p]
-            if len(parts) >= 3 and parts[0] not in ("#", "—"):
-                try:
-                    num = int(parts[0])
-                except ValueError:
-                    continue
-                tag_name = parts[1]
-                group_name = parts[2]
-                date_added = parts[3] if len(parts) > 3 else "2026-04-11"
-                date_added = date_added.split()[0].strip()
-                tags.append({
-                    "num": num,
-                    "name": tag_name,
-                    "group_name": group_name,
-                    "date_added": date_added,
-                })
-
-    return groups, tags
-
-
-# ============================================================
-# MIGRATE TAGS
-# ============================================================
-
-def cmd_migrate_tags(args):
-    print("Migrando tags desde tags-usables.md...")
-    groups, tags = parse_tags_file(TAGS_FILE)
-    print(f"  Encontrados {len(tags)} tags en {len(groups)} grupos")
-
-    wp_base_url, auth_header = get_wp_config()
-    if not wp_base_url:
-        print(json.dumps({"ok": False, "error": "No se pudieron leer las credenciales de WordPress desde .env"}), file=sys.stderr)
-        sys.exit(1)
-
-    print("  Descargando tags de WordPress...")
-    wp_tags = wp_api_get_all("tags", wp_base_url, auth_header, {"fields": "id,name,slug,count"})
-    wp_tags_by_name = {}
-    for t in wp_tags:
-        wp_tags_by_name[t["name"]] = t
-        wp_tags_by_name[t["name"].lower()] = t
-        wp_tags_by_name[t["slug"]] = t
-    print(f"  Obtenidos {len(wp_tags)} tags de WordPress")
-
-    conn = get_conn()
-    group_lookup = {}
-    for row in conn.execute("SELECT id, name, slug FROM tag_groups").fetchall():
-        group_lookup[row["name"]] = row["id"]
-        group_lookup[row["slug"]] = row["id"]
-
-    inserted = 0
-    created_in_wp = 0
-    errors = []
-
-    for tag_data in tags:
-        tag_name = tag_data["name"]
-        group_name = tag_data["group_name"]
-        group_id = group_lookup.get(group_name)
-        if not group_id:
-            slug = GROUP_NAME_TO_SLUG.get(group_name, group_name.lower())
-            group_id = group_lookup.get(slug)
-            if not group_id:
-                errors.append(f"Grupo no encontrado: {group_name} para tag {tag_name}")
-                continue
-
-        wp_tag = wp_tags_by_name.get(tag_name) or wp_tags_by_name.get(tag_name.lower())
-        wp_id = None
-        tag_slug = None
-
-        if wp_tag:
-            wp_id = wp_tag["id"]
-            tag_slug = wp_tag["slug"]
-        else:
-            tag_slug = slugify(tag_name)
-            try:
-                new_tag = wp_api_post("tags", wp_base_url, auth_header, {"name": tag_name, "slug": tag_slug})
-                wp_id = new_tag["id"]
-                tag_slug = new_tag.get("slug", tag_slug)
-                created_in_wp += 1
-                print(f"    Creado tag en WordPress: {tag_name} (ID: {wp_id})")
-            except Exception as e:
-                errors.append(f"No se pudo crear tag '{tag_name}' en WordPress: {e}")
-                continue
-
-        try:
-            conn.execute(
-                "INSERT OR IGNORE INTO tags (wp_id, name, slug, group_id, created_at) VALUES (?, ?, ?, ?, ?)",
-                (wp_id, tag_name, tag_slug, group_id, tag_data["date_added"]),
-            )
-            inserted += 1
-        except Exception as e:
-            errors.append(f"Error insertando tag '{tag_name}': {e}")
-
-    conn.commit()
-    conn.close()
-
-    print(f"  Insertados {inserted} tags en la base de datos")
-    if created_in_wp:
-        print(f"  Creados {created_in_wp} tags nuevos en WordPress")
-    if errors:
-        print(f"  {len(errors)} errores:")
-        for err in errors:
-            print(f"    - {err}")
-
-    result = {"ok": True, "inserted": inserted, "created_in_wp": created_in_wp, "errors": errors}
-    print(json.dumps(result, ensure_ascii=False))
-
-
-# ============================================================
 # SYNC TAGS WP
 # ============================================================
 
@@ -581,7 +433,6 @@ def main():
     sub = parser.add_subparsers(dest="command", required=True)
 
     sub.add_parser("init", help="Crear tablas y datos iniciales (tag_groups, preserva internal_links)")
-    sub.add_parser("migrate-tags", help="Migrar tags desde tags-usables.md (resuelve wp_ids via WP API)")
     sub.add_parser("sync-tags-wp", help="Sincronizar wp_ids de tags con WordPress")
     sub.add_parser("sync-posts-wp", help="Poblar posts y post_tags desde WordPress")
 
@@ -589,7 +440,6 @@ def main():
 
     commands = {
         "init": cmd_init,
-        "migrate-tags": cmd_migrate_tags,
         "sync-tags-wp": cmd_sync_tags_wp,
         "sync-posts-wp": cmd_sync_posts_wp,
     }

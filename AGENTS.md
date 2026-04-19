@@ -14,7 +14,7 @@ Proyecto basado en OpenCode — sin sistema de build ni tests. El agente genera 
 ├── commands/     # Comandos slash (/create-post, /generate-post-ideas)
 ├── rules/        # Reglas siempre activas (cargadas automáticamente via opencode.json)
 └── skills/       # Capacidades bajo demanda (se cargan cuando se necesitan)
-memory/           # Cola de ideas y estado de publicación
+memory/           # Base de datos SQLite (blog.db) y scripts de consulta
 opencode.json     # Configuración del agente y MCP
 .env              # Credenciales de API (nunca commitear)
 ```
@@ -62,10 +62,12 @@ Disponibles via `wordpress-mcp-remote`:
 
 ## Sistema de memoria
 
-`memory/post-ideas.md` registra todas las ideas de posts. Las reglas completas de gestión están en la rule `post-ideas-memory`.
+`memory/blog.db` (SQLite) es la fuente de verdad. Schema definido en `memory/blog.dbml`.
+
+Las ideas se gestionan mediante `memory/scripts/db_query.py`.
 
 | Estado | Significado |
 |--------|-------------|
 | `pendiente` | Generada pero sin usar |
-| `en uso` | En proceso de creación |
+| `en_uso` | En proceso de creación |
 | `publicado` | Publicado en WordPress |
