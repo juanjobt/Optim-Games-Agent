@@ -22,6 +22,7 @@ Subcomandos:
   db_query.py get-post --wp-id N
   db_query.py get-post --slug "slug-del-post"
   db_query.py add-post --wp-id N --title "..." --slug "..." --category-slug reviews [--published-at "2026-04-18"]
+  db_query.py add-post-tags --wp-id N --tag-ids 12,34,56
   db_query.py update-post --wp-id N [--title "..."] [--slug "..."] [--category-slug "..."] [--status "..."]
   db_query.py list-posts [--category reviews|historias|listas] [--limit 20] [--search "keyword"]
 
@@ -359,6 +360,50 @@ def cmd_add_post(args):
         conn.close()
 
 
+def cmd_add_post_tags(args):
+    conn = get_conn()
+    try:
+        post_wp_id = int(args.wp_id)
+        tag_ids = [int(t.strip()) for t in args.tag_ids.split(",") if t.strip()]
+
+        if not tag_ids:
+            out({"ok": False, "error": "No se proporcionaron tag_ids. Usa formato: 12,34,56"})
+            return
+
+        post_exists = conn.execute("SELECT wp_id FROM posts WHERE wp_id = ?", (post_wp_id,)).fetchone()
+        if not post_exists:
+            out({"ok": False, "error": f"Post con wp_id={post_wp_id} no encontrado en la DB"})
+            return
+
+        inserted = 0
+        skipped = 0
+        not_found = []
+        for tag_wp_id in tag_ids:
+            tag_exists = conn.execute("SELECT wp_id FROM tags WHERE wp_id = ?", (tag_wp_id,)).fetchone()
+            if not tag_exists:
+                not_found.append(tag_wp_id)
+                continue
+            try:
+                conn.execute(
+                    "INSERT INTO post_tags (post_wp_id, tag_wp_id) VALUES (?, ?)",
+                    (post_wp_id, tag_wp_id),
+                )
+                inserted += 1
+            except sqlite3.IntegrityError:
+                skipped += 1
+
+        conn.commit()
+        result = {"ok": True, "post_wp_id": post_wp_id, "inserted": inserted, "skipped_duplicates": skipped}
+        if not_found:
+            result["warning"] = f"Tags no encontrados en la DB: {not_found}"
+        out(result)
+    except Exception as e:
+        conn.rollback()
+        out({"ok": False, "error": str(e)})
+    finally:
+        conn.close()
+
+
 def cmd_update_post(args):
     conn = get_conn()
     try:
@@ -638,6 +683,10 @@ def main():
     p_add_post.add_argument("--category-slug", type=str, required=True, choices=list(VALID_CATEGORIES))
     p_add_post.add_argument("--published-at", type=str, default=None)
 
+    p_add_post_tags = sub.add_parser("add-post-tags", help="Registra relaciones post-tags en lotes")
+    p_add_post_tags.add_argument("--wp-id", type=int, required=True, help="wp_id del post")
+    p_add_post_tags.add_argument("--tag-ids", type=str, required=True, help="IDs de tags separados por coma (ej: 12,34,56)")
+
     p_update_post = sub.add_parser("update-post", help="Actualiza campos de un post")
     p_update_post.add_argument("--wp-id", type=int, required=True)
     p_update_post.add_argument("--title", type=str, default=None)
@@ -680,6 +729,7 @@ def main():
         "get-or-create-tag": cmd_get_or_create_tag,
         "get-post": cmd_get_post,
         "add-post": cmd_add_post,
+        "add-post-tags": cmd_add_post_tags,
         "update-post": cmd_update_post,
         "list-posts": cmd_list_posts,
         "get-links": cmd_get_links,

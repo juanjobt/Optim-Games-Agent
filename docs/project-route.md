@@ -92,7 +92,7 @@ Esta fase es el puente entre el contenido bruto y la autoridad en Google.
 
 - [x] Mapeo de Custom Fields para VideoGame: Configurar el agente (OpenCode) para que envíe los datos técnicos (name, system, developer, genre) a los campos específicos del plugin Schema & Structured Data. Así el "verde" de Google será automático.
 - [ ] Inyección de Metadatos Rank Math: El agente debe generar y enviar un focus_keyword coherente, un seo_title (máx. 60 caracteres) y una meta_description (máx. 160 caracteres) que invite al clic.
-- [ ] Lógica de Enlazado Interno (Internal Linking): - Implementar una búsqueda por etiquetas o categorías en la "memoria" del agente.
+- [x] Lógica de Enlazado Interno (Internal Linking): - Implementar una búsqueda por etiquetas o categorías en la "memoria" del agente.
 - Regla: "Cada nuevo post debe enlazar al menos a otros 2 posts antiguos de temática similar". Mejorar lo que ya tenemos. Y añadir a los posts que no tienen.
 - [ ] Limpieza de "Slugs" (URLs): Asegurar que el agente genere URLs limpias (ej: optimpixel.com/historia-resident-evil/ en lugar de la URL por defecto larga o con fechas).
 - [ ] Consistencia de Marca (E-E-A-T): Configurar al agente para que siempre use el mismo nombre de "Autor" y "Organización" (Optim Pixel) para que Google asocie el contenido con una entidad experta.
@@ -137,7 +137,7 @@ El contenido existe, pero nadie lo encuentra si no hay canales. Las apuestas má
 
 **Impacto:** Operativo. El `.md` empieza a fallar en torno a los 100-150 posts.
 
-- [ ] Evaluar opciones cuando se acerque el límite:
+- [x] Evaluar opciones cuando se acerque el límite:
   - **SQLite local** — más simple, sin dependencias externas
   - **Notion API** — más visual, fácil de gestionar manualmente
   - **Supabase** — si se quiere escalar a varios agentes o blogs

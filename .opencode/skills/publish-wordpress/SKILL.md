@@ -1,20 +1,23 @@
 ---
 name: publish-wordpress
-description: Publica o actualiza posts completos en WordPress dado un título y un contenido. Gestiona categorías y tags. Orquesta el flujo completo de publicación. Recibe game_data para resolver tags contra la memoria tags-usables.md. Usa la skill upload-wordpress-image para la imagen de portada si se proporciona URL. Usar cuando se necesite publicar contenido en optimpixel.com.
+description: Publica o actualiza posts completos en WordPress dado un título y un contenido. Gestiona categorías y tags. Orquesta el flujo completo de publicación. Recibe game_data para resolver tags contra la base de datos local (memory/blog.db). Usa la skill upload-wordpress-image para la imagen de portada si se proporciona URL. Usar cuando se necesite publicar contenido en optimpixel.com.
 compatibility: Requiere WordPress MCP configurado, acceso a internet y credenciales en .env
 metadata:
   author: optimbyte
-  version: "2.0"
-allowed-tools: wp_add_post wp_update_post wp_get_post wp_posts_search wp_list_categories wp_list_tags wp_add_category wp_add_tag
+  version: "3.0"
+  allowed-tools: wp_add_post wp_update_post wp_get_post wp_posts_search wp_list_categories wp_list_tags wp_add_category wp_add_tag
 ---
 
 # Skill: Publicar en WordPress
 
 Flujo completo de publicación de un post en WordPress via MCP:
 1. Resolver la categoría a partir del tipo de post
-2. Generar y validar tags a partir de game_data contra tags-usables.md
+2. Generar y validar tags a partir de game_data contra la base de datos local
 3. Crear el post con categoría, tags y contenido
 4. Subir y asignar la imagen de portada (si hay URL)
+5. Registrar el post y sus tags en la base de datos local
+
+**Fuente de verdad para tags:** `memory/blog.db` (tabla `tags`). Todas las consultas de tags se hacen mediante `memory/scripts/db_query.py`.
 
 ---
 
@@ -59,13 +62,26 @@ Opcionales:
 
 ## Herramientas MCP disponibles
 
-- `wp_add_post` — Crea un nuevo post (usar en vez de wp_create_post)
+- `wp_add_post` — Crea un nuevo post
 - `wp_update_post` — Actualiza un post existente por ID
 - `wp_posts_search` — Consulta posts existentes
 - `wp_list_categories` — Lista categorías con sus IDs
 - `wp_list_tags` — Lista tags con sus IDs
 - `wp_add_category` — Crea una categoría si no existe
 - `wp_add_tag` — Crea un tag si no existe
+
+## Herramientas de memoria local
+
+Ejecutar con `python3 memory/scripts/db_query.py`:
+
+| Comando | Uso |
+|---------|-----|
+| `get-tags-by-group --group <grupo>` | Lista tags existentes de un grupo (con wp_id) |
+| `get-tag --name "Nombre"` | Busca un tag por nombre exacto |
+| `get-or-create-tag --name "Nombre" --group <grupo>` | Obtiene un tag o lo crea si no existe |
+| `add-tag --name "Nombre" --slug "slug" --group <grupo> --wp-id N` | Crea un tag nuevo en la DB |
+| `add-post --wp-id N --title "..." --slug "..." --category-slug <slug>` | Registra un post publicado en la DB |
+| `add-post-tags --wp-id N --tag-ids 12,34,56` | Registra relaciones post↔tags en la DB |
 
 ---
 
@@ -94,7 +110,7 @@ Anotar el `ID` de la categoría para el Paso 3.
 
 ## Paso 2 — Generar y validar tags del post
 
-**OBLIGATORIO** — Este paso genera los tags basándose en `game_data` y los valida contra la memoria.
+**OBLIGATORIO** — Este paso genera los tags basándose en `game_data` y los valida contra la base de datos local.
 
 ### 2.1 — Extraer información de game_data
 
@@ -108,15 +124,34 @@ Del objeto `game_data` recibido como input, extraer:
 
 Si se requiere, se puede investigar en fuentes externas para completar información adicional (creador, compositor, país, técnica, personaje).
 
-### 2.2 — Consultar memoria de tags
+### 2.2 — Consultar tags disponibles en la DB
 
-1. Leer `memory/tags-usables.md` (fuente de verdad)
-2. Consultar los grupos disponibles: Sistema, Género, Época, Año, Desarrolladora, Creador, Saga, País, Técnica, Personaje, Compositor
+Para cada grupo relevante según `game_data`, consultar los tags existentes en la base de datos local:
+
+```bash
+python3 memory/scripts/db_query.py get-tags-by-group --group sistema
+python3 memory/scripts/db_query.py get-tags-by-group --group genero
+python3 memory/scripts/db_query.py get-tags-by-group --group epoca
+python3 memory/scripts/db_query.py get-tags-by-group --group ano
+python3 memory/scripts/db_query.py get-tags-by-group --group desarrolladora
+python3 memory/scripts/db_query.py get-tags-by-group --group saga
+```
+
+Consultar también grupos opcionales si game_data los incluye:
+```bash
+python3 memory/scripts/db_query.py get-tags-by-group --group creador
+python3 memory/scripts/db_query.py get-tags-by-group --group compositor
+python3 memory/scripts/db_query.py get-tags-by-group --group pais
+python3 memory/scripts/db_query.py get-tags-by-group --group tecnica
+python3 memory/scripts/db_query.py get-tags-by-group --group personaje
+```
+
+Cada comando devuelve JSON estructurado con la lista de tags del grupo, incluyendo `wp_id`, `name`, `slug` y `group_slug`. Los tags que ya estén en la DB local con `wp_id` se usan directamente sin necesidad de consultar WordPress.
 
 ### 2.3 — Mapear game_data a tags
 
-- Por cada elemento de game_data, buscar el tag equivalente en la memoria
-- Si hay variaciones (ej: "SNES" → "Super Nintendo", "action" → "Acción"), **USAR SIEMPRE** el tag de la memoria
+- Por cada elemento de game_data, buscar el tag equivalente en los resultados del paso 2.2
+- Si hay variaciones (ej: "SNES" → "Super Nintendo", "action" → "Acción"), **USAR SIEMPRE** el tag que aparece en la DB local
 - **Tags obligatorios por grupo**: Sistema, Género, Época, Año, Desarrolladora
 - **Tags opcionales**: Saga, Creador, Compositor, País, Técnica, Personaje
 
@@ -153,98 +188,82 @@ Si la respuesta a todas es "no", solo se añade el sistema principal.
 
 **Cuando game_data.system traiga múltiples sistemas**, el agente debe filtrar aplicando esta regla antes de convertirlos a tags. No pasar el array completo sin filtrar.
 
-### 2.4 — Añadir tags nuevos
+### 2.4 — Resolver IDs de WordPress
 
-Si un tag necesario NO existe en `memory/tags-usables.md`:
-- Añadirlo automáticamente al archivo con el grupo correspondiente y fecha actual
-- Usar el tag en el post
+Para **cada tag** necesario del paso 2.3, resolver su ID de WordPress siguiendo este flujo:
 
-### 2.5 — Resolver IDs en WordPress
+#### Caso A: Tag encontrado en la DB local
 
-**⚠️ CRÍTICO: Los números de fila en `tags-usables.md` NO son IDs de WordPress. Son solo contadores. Nunca usarlos como IDs de tag.**
+Si el tag aparece en los resultados del paso 2.2 con un `wp_id` válido, usar ese `wp_id` directamente. **No es necesario llamar a `wp_list_tags`.**
 
-Los IDs de tag en WordPress son números arbitrarios asignados por WordPress al crear cada tag. No coinciden con los números de fila de la memoria. Para obtener el ID correcto de cada tag en WordPress, seguir este proceso exacto:
+Este es el caso más común — la DB local ya tiene los `wp_id` sincronizados con WordPress.
 
-#### Proceso paso a paso
+#### Caso B: Tag no encontrado en la DB local
 
-Para **cada tag** en la lista de tags del paso 2.3 (ej: ["ZX Spectrum", "Action-Adventure", "Puzzle", "Años 80", "Commodore 64", "Ocean Software"]):
+Si un tag necesario no aparece en los resultados del paso 2.2:
 
-**1. Derivar el slug esperado** a partir del nombre del tag:
-   - Convertir a minúsculas
-   - Reemplazar espacios por guiones
-   - Eliminar acentos (ej: "Acción" → "accion")
-   - Ejemplos:
-     - "ZX Spectrum" → `zx-spectrum`
-     - "Action-Adventure" → `action-adventure`
-     - "Años 80" → `anos-80`
-     - "Ocean Software" → `ocean-software`
+1. **Derivar el slug esperado** del nombre:
+   - Minúsculas, espacios → guiones, sin acentos (ej: "Años 80" → `anos-80`)
 
-**2. Buscar el tag en WordPress por slug** (NO por nombre):
+2. **Buscar en WordPress por slug**:
+   ```
+   wp_list_tags(slug=["slug-derivado"])
+   ```
 
-```
-wp_list_tags(slug=["zx-spectrum","action-adventure","puzzle","anos-80","commodore-64","ocean-software"])
-```
+3. **Si existe en WordPress**: Obtener su `id` real y registrarlo en la DB local:
+   ```bash
+   python3 memory/scripts/db_query.py add-tag --name "Nombre" --slug "slug-derivado" --group grupo --wp-id ID_DE_WP
+   ```
+   Anotar el `wp_id` para el post.
 
-Esto devuelve solo los tags que coinciden por slug, con sus IDs reales de WordPress.
-
-**3. Para cada tag encontrado**, anotar su `id` (el ID real de WordPress, NO el número de fila de la memoria).
-
-**4. Para cada tag NO encontrado** (no apareció en la respuesta de `wp_list_tags`):
-
-Crear el tag en WordPress:
-```
-wp_add_tag(name: "Nombre del Tag")
-```
-
-Anotar el `id` devuelto por WordPress.
-
-**5. Construir el array final** de IDs reales de WordPress para pasar a `wp_add_post`.
+4. **Si no existe en WordPress**: Crear el tag en WordPress:
+   ```
+   wp_add_tag(name: "Nombre del Tag")
+   ```
+   Anotar el `id` devuelto por WordPress y registrarlo en la DB local:
+   ```bash
+   python3 memory/scripts/db_query.py add-tag --name "Nombre del Tag" --slug "slug-derivado" --group grupo --wp-id ID_DE_WP
+   ```
 
 #### Ejemplo completo
 
 Tags necesarios: ZX Spectrum, Action-Adventure, Puzzle, Años 80, Commodore 64, Ocean Software
 
-Slugs derivados: `zx-spectrum`, `action-adventure`, `puzzle`, `anos-80`, `commodore-64`, `ocean-software`
+Consulta local (`get-tags-by-group` para cada grupo relevante) → Resultados:
+- ZX Spectrum → wp_id: 45 (en DB local)
+- Action-Adventure → wp_id: 80 (en DB local)
+- Puzzle → wp_id: 19 (en DB local)
+- Años 80 → wp_id: 28 (en DB local)
+- Commodore 64 → wp_id: 107 (en DB local)
+- Ocean Software → no está en DB local → resolver vía WordPress
 
-```
-wp_list_tags(slug=["zx-spectrum","action-adventure","puzzle","anos-80","commodore-64","ocean-software"])
-```
-
-Respuesta hipotética:
-- ZX Spectrum → id: 45 ✅
-- Action-Adventure → id: 80 ✅
-- Puzzle → id: 19 ✅
-- Años 80 → id: 28 ✅
-- Commodore 64 → id: 107 ✅
-- Ocean Software → no encontrado → crear con `wp_add_tag(name: "Ocean Software")` → id: 233 ✅
+Tag Ocean Software:
+1. Derivar slug: `ocean-software`
+2. `wp_list_tags(slug=["ocean-software"])` → no encontrado
+3. `wp_add_tag(name: "Ocean Software")` → id: 233
+4. `add-tag --name "Ocean Software" --slug "ocean-software" --group desarrolladora --wp-id 233`
 
 Array final para `wp_add_post`: `tags: [45, 80, 19, 28, 107, 233]`
-
-#### Lo que NUNCA se debe hacer
-
-- ❌ Usar los números de fila de `tags-usables.md` como IDs de WordPress
-- ❌ Usar `wp_list_tags()` sin filtros y luego buscar visualmente por nombre (la respuesta puede truncarse)
-- ❌ Adivinar IDs de WordPress basándose en la posición en la memoria
-- ❌ Asumir que el tag existe en WordPress solo porque está en la memoria
 
 #### Verificación
 
 Antes de pasar al Paso 3, confirmar que cada ID del array corresponde al tag correcto mostrando la tabla:
 
 ```
-| Tag          | Slug esperado    | ID en WP |
-|--------------|-------------------|----------|
-| ZX Spectrum  | zx-spectrum       | 45       |
-| Puzzle       | puzzle            | 19       |
-| ...          | ...               | ...      |
+| Tag            | Slug esperado     | Origen     | ID en WP |
+|----------------|-------------------|------------|----------|
+| ZX Spectrum    | zx-spectrum       | DB local   | 45       |
+| Puzzle         | puzzle            | DB local   | 19       |
+| Ocean Software | ocean-software    | WP (nuevo) | 233      |
+| ...            | ...               | ...        | ...      |
 ```
 
 ### Resultado del paso
 
 Anotar:
-- Lista de tags usados (nombres, mapeados a la memoria)
+- Lista de tags usados (nombres, grupo, origen)
 - IDs de tags en WordPress
-- Tags nuevos añadidos a `memory/tags-usables.md`
+- Tags nuevos creados y registrados en la DB local
 
 ---
 
@@ -281,29 +300,60 @@ Anotar el `post_id` devuelto y la `URL` pública del post.
 
 ---
 
-## Paso 5 — Reporte final
+## Paso 5 — Registrar en la base de datos local
+
+Tras publicar el post en WordPress, registrar tanto el post como sus tags en la DB local para mantener sincronizada la memoria. Esto es esencial para que `find-related` (internal links) funcione correctamente con los posts nuevos.
+
+### 5.1 — Registrar el post
+
+```bash
+python3 memory/scripts/db_query.py add-post \
+  --wp-id POST_ID \
+  --title "Título del post" \
+  --slug "slug-del-post" \
+  --category-slug reviews
+```
+
+Usar `reviews`, `historias` o `listas` según el tipo de post.
+
+### 5.2 — Registrar las relaciones post↔tags
+
+```bash
+python3 memory/scripts/db_query.py add-post-tags --wp-id POST_ID --tag-ids "45,80,19,28,107,233"
+```
+
+Los IDs son los `wp_id` de los tags obtenidos en el Paso 2 (los mismos usados para crear el post en WordPress).
+
+Este paso es **obligatorio** — sin él, el post no tendrá tags en la DB local y el sistema de internal links no podrá encontrar posts relacionados por tags.
+
+---
+
+## Paso 6 — Reporte final
 
 ```
 ✅ URL del post publicado
 📂 Categoría asignada
-🏷️ Tags: [lista] (X existentes + Y nuevos añadidos a memoria)
-✅ Validación de tags: completada vs memory/tags-usables.md
+🏷️ Tags: [lista] (X desde DB local + Y nuevos creados y registrados)
+✅ Validación de tags: completada vs memory/blog.db
 🖼️ Imagen de portada: asignada correctamente / ⚠️ pendiente (sin URL)
 🖼️ Imágenes de contenido: X screenshots + Y conceptos / ⚠️ pendientes
+📝 Post registrado en DB local: sí (wp_id=X, tags=Y)
 🕐 Fecha y hora de publicación
 ```
 
-**Importante:** En el reporte, indicar cuántos tags nuevos se añadieron a `memory/tags-usables.md`. Si hay imágenes de contenido, listar los `media_id` correspondientes.
-
 **Verificación de tags:** Incluir la tabla de mapeo tag → ID en WordPress para confirmar que los IDs son correctos. Si algún ID no corresponde al tag esperado, detener la publicación y corregir.
 
-Si la imagen de portada quedó pendiente, indica en el reporte que el usuario puede añadirla manualmente desde el panel de WordPress. Si faltan imágenes de contenido, indicar cuántas se buscaron y cuántas se encontraron.
+Si la imagen de portada quedó pendiente, indica en el reporte que el usuario puede añadirla manualmente desde el panel de WordPress.
 
 ---
 
 ## Manejo de errores comunes
 
-**Categoría o tag no encontrado** — Usar `wp_add_category` o `wp_add_tag` antes de asignar.
+**Categoría no encontrada** — Usar `wp_add_category` antes de asignar.
+
+**Tag no encontrado en la DB local ni en WordPress** — Crear con `wp_add_tag` y luego registrar en la DB local con `db_query.py add-tag`.
+
+**Error al registrar post/Tags en DB local** — No bloquea la publicación del post en WordPress. Reportar el error y ejecutar `python3 memory/scripts/db_init.py sync-posts-wp` para resincronizar.
 
 **Token JWT expirado** — Duración máxima 24h. Regenerar en **Ajustes → WordPress MCP → Authentication Tokens** y actualizar `.env`.
 

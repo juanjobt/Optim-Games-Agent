@@ -34,6 +34,7 @@ Todas las operaciones sobre la memoria se realizan mediante `memory/scripts/db_q
 | Operación | Comando |
 |-----------|---------|
 | Registrar post | `python3 memory/scripts/db_query.py add-post --wp-id N --title "..." --slug "..." --category-slug reviews` |
+| Registrar tags de post | `python3 memory/scripts/db_query.py add-post-tags --wp-id N --tag-ids 12,34,56` |
 | Consultar post | `python3 memory/scripts/db_query.py get-post --wp-id N` |
 | Sincronizar desde WP | `python3 memory/scripts/db_query.py sync-posts-from-wp` |
 
