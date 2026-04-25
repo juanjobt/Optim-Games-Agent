@@ -66,11 +66,11 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 
 **Impacto:** Mejor experiencia = más tiempo en página = mejor señal para Google.
 
-- [ ] Home con destacados por categoría (últimas reviews, últimas curiosidades, última lista). Home con diseño de "revista" (lo veremos luego).
-- [x] Página "Sobre el blog" (necesaria para E-E-A-T y confianza del usuario)
+- [x] Home con destacados por categoría (últimas reviews, últimas curiosidades, última lista). Home con diseño de "revista" (lo veremos luego).
+- [ ] Página "Sobre el blog" (necesaria para E-E-A-T y confianza del usuario)
 - [ ] Configurar el Buscador y los Breadcrumbs.
 - [x] Footer
-- [x] Buscador interno visible en header o sidebar
+- [ ] Buscador interno visible en header o sidebar
 - [x] Widget de posts relacionados al final de cada entrada
 - [ ] Breadcrumbs activados (Rank Math los genera automáticamente)
 - [ ] Página de Contacto: Fundamental. Usa un formulario sencillo (tipo WPForms o Contact Form 7) para evitar spam.
@@ -83,6 +83,7 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 - [ ] Fichas Técnicas: Un bloque visual al principio de cada post con: Desarrolladora, Año de lanzamiento, Sistema y Género.
 - [ ] Mejora Footer
 - [ ] Aviso Legal
+- [ ] Responsive review
 
 
 
