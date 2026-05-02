@@ -67,12 +67,15 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 **Impacto:** Mejor experiencia = más tiempo en página = mejor señal para Google.
 
 - [x] Home con destacados por categoría (últimas reviews, últimas curiosidades, última lista). Home con diseño de "revista" (lo veremos luego).
-- [ ] Página "Sobre el blog" (necesaria para E-E-A-T y confianza del usuario)
-- [ ] Configurar el Buscador y los Breadcrumbs.
+- [x] Aspecto archive + individual post
+- [x] Página "Sobre el blog" (necesaria para E-E-A-T y confianza del usuario)
+- [x] Configurar el Buscador y los Breadcrumbs.
+- [x] diseño paginas de busqueda
+- [x] buscador en 404
 - [x] Footer
-- [ ] Buscador interno visible en header o sidebar
+- [x] Buscador interno visible en header o sidebar
 - [x] Widget de posts relacionados al final de cada entrada
-- [ ] Breadcrumbs activados (Rank Math los genera automáticamente)
+- [x] Breadcrumbs activados (Rank Math los genera automáticamente)
 - [ ] Página de Contacto: Fundamental. Usa un formulario sencillo (tipo WPForms o Contact Form 7) para evitar spam.
 - [ ] Página de "Archivo" o "Mapa del Sitio": Una página donde el usuario pueda ver todos tus posts organizados por mes o por consola/género. A los retro-gamers les encanta navegar por catálogos.
 - [ ] Aviso Legal y Privacidad: Si piensas monetizar o usar Analytics, son obligatorias por ley.
@@ -80,10 +83,10 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 - [ ] Sistema de Valoración (Estrellas): Deja que los usuarios voten los juegos de los que hablas. Esto genera "Rich Snippets" (estrellas en los resultados de Google) y atrae más clics.
 - [ ] Modo Oscuro (Dark Mode): En el mundo gaming es casi un estándar. Un interruptor "Luna/Sol" en el menú mejora mucho la UX.
 - [ ] Barra de Lectura: Una línea fina que avanza según haces scroll. Ayuda a retener al usuario en posts largos.
-- [ ] Fichas Técnicas: Un bloque visual al principio de cada post con: Desarrolladora, Año de lanzamiento, Sistema y Género.
-- [ ] Mejora Footer
-- [ ] Aviso Legal
-- [ ] Responsive review
+- [ ] Menu movil
+- [x] Fichas Técnicas: Un bloque visual al principio de cada post con: Desarrolladora, Año de lanzamiento, Sistema y Género.
+- [x] Mejora Footer
+- [x] Responsive review
 
 
 
@@ -104,17 +107,17 @@ Esta fase es el puente entre el contenido bruto y la autoridad en Google.
 
 ---
 
-## 🟣 Fase 6 — Screenshots en posts *(agente — alta prioridad)*
+## ✅ Fase 6 — Screenshots en posts *(agente — alta prioridad)*
 
 **Impacto:** Reduce bounce rate, aumenta tiempo en página, Google indexa las imágenes.
 **Por qué antes que la memoria:** Beneficio visible para usuarios y bots; la memoria aguanta hasta ~150 posts.
 
-- [ ] Diseñar skill `/add-screenshots` para el agente
+- [x] Diseñar skill `/add-screenshots` para el agente
   - Busca 2-3 screenshots del juego (fuente: MobyGames, Internet Archive, RAWG)
   - Los descarga y sube a la biblioteca de medios de WordPress
   - Los intercala en el contenido del post en posiciones naturales (después del primer párrafo, a mitad del análisis de gameplay, antes de la conclusión)
-- [ ] Añadir atributos `alt` descriptivos con el nombre del juego y la sistema
-- [ ] Probar el workflow en un post existente antes de activarlo por defecto
+- [x] Añadir atributos `alt` descriptivos con el nombre del juego y la sistema
+- [x] Probar el workflow en un post existente antes de activarlo por defecto
 
 ---
 
