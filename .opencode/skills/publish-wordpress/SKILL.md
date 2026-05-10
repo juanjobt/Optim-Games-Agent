@@ -214,6 +214,10 @@ Si un tag necesario no aparece en los resultados del paso 2.2:
    ```bash
    python3 memory/scripts/db_query.py add-tag --name "Nombre" --slug "slug-derivado" --group grupo --wp-id ID_DE_WP
    ```
+   Luego, asignar el term meta `tag_group` al tag (ver paso 2.5):
+   ```
+   wp_update_post(id: ID_DE_WP, meta: {"tag_group": "grupo"})
+   ```
    Anotar el `wp_id` para el post.
 
 4. **Si no existe en WordPress**: Crear el tag en WordPress:
@@ -224,6 +228,23 @@ Si un tag necesario no aparece en los resultados del paso 2.2:
    ```bash
    python3 memory/scripts/db_query.py add-tag --name "Nombre del Tag" --slug "slug-derivado" --group grupo --wp-id ID_DE_WP
    ```
+   Luego, asignar el term meta `tag_group` al nuevo tag (ver paso 2.5).
+
+### 2.5 — Asignar term meta tag_group a tags nuevos
+
+**OBLIGATORIO** para todo tag que se cree nuevo en WordPress (Caso B.4) o que se descubra existente sin el meta (Caso B.3).
+
+El shortcode `[opcat_section]` de la página "El Catálogo" (`/el-catalogo`) usa el term meta `tag_group` para agrupar los tags dinámicamente. Sin este meta, los tags nuevos no aparecen en el catálogo.
+
+Para asignar el meta después de crear/descubrir un tag:
+
+```bash
+python3 .opencode/skills/publish-wordpress/scripts/sync_tag_groups.py --single --wp-id ID_DEL_TAG --group GRUPO
+```
+
+Donde:
+- `ID_DEL_TAG` es el `wp_id` del tag en WordPress
+- `GRUPO` es el slug del grupo (ej: `sistema`, `genero`, `saga`, `epoca`, `ano`, `desarrolladora`, `creador`, `pais`, `tecnica`, `personaje`, `compositor`)
 
 #### Ejemplo completo
 

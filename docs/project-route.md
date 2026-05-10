@@ -76,9 +76,9 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 - [x] Buscador interno visible en header o sidebar
 - [x] Widget de posts relacionados al final de cada entrada
 - [x] Breadcrumbs activados (Rank Math los genera automáticamente)
-- [ ] Página de Contacto: Fundamental. Usa un formulario sencillo (tipo WPForms o Contact Form 7) para evitar spam.
+- [x] Página de Contacto: Fundamental. Usa un formulario sencillo (tipo WPForms o Contact Form 7) para evitar spam.
 - [ ] Página de "Archivo" o "Mapa del Sitio": Una página donde el usuario pueda ver todos tus posts organizados por mes o por consola/género. A los retro-gamers les encanta navegar por catálogos.
-- [ ] Aviso Legal y Privacidad: Si piensas monetizar o usar Analytics, son obligatorias por ley.
+- [x] Aviso Legal y Privacidad: Si piensas monetizar o usar Analytics, son obligatorias por ley.
 - [ ] Habilitar Comentarios: ¡Sí! Pero con moderación. Instala Akismet o usa un sistema como Cusdis (más ligero) para evitar que los bots llenen tu base de datos de basura.
 - [ ] Sistema de Valoración (Estrellas): Deja que los usuarios voten los juegos de los que hablas. Esto genera "Rich Snippets" (estrellas en los resultados de Google) y atrae más clics.
 - [ ] Modo Oscuro (Dark Mode): En el mundo gaming es casi un estándar. Un interruptor "Luna/Sol" en el menú mejora mucho la UX.
@@ -94,6 +94,7 @@ Con el agente generando posts a buen ritmo, el siguiente cuello de botella es el
 
 Esta fase es el puente entre el contenido bruto y la autoridad en Google.
 
+- [] cumplir https://isitagentready.com/
 - [x] Mapeo de Custom Fields para VideoGame: Configurar el agente (OpenCode) para que envíe los datos técnicos (name, system, developer, genre) a los campos específicos del plugin Schema & Structured Data. Así el "verde" de Google será automático.
 - [ ] Inyección de Metadatos Rank Math: El agente debe generar y enviar un focus_keyword coherente, un seo_title (máx. 60 caracteres) y una meta_description (máx. 160 caracteres) que invite al clic.
 - [x] Lógica de Enlazado Interno (Internal Linking): - Implementar una búsqueda por etiquetas o categorías en la "memoria" del agente.
