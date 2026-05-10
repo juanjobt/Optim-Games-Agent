@@ -30,3 +30,4 @@ desktop.ini
 *.test.local
 debug/
 drafts/
+memory/execution-logs/
