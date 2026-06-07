@@ -38,17 +38,14 @@ Tiene 0 posts. Primero tendrás que publicar al menos uno para que la página no
 
 # Mejoras futuras UI
 
-- basarse en 3djuegos
-- mega menu buscador
-- cuando tenga muchos blogs igual hay que meter barra lateral con opciones de busqueda y menus...
-- activar suscripciones
-
-# inter linking
-Problemas observados
-1. find-related no excluye destinos ya enlazados
-La documentación de la skill dice que el comando excluye automáticamente los posts que ya tienen enlace desde el origen. Sin embargo, Chrono Trigger (wp_id:10) apareció en los resultados con score 5 aunque ya tenía un incoming link registrado desde post 86. Tuve que verificar manualmente con get-links y excluirlo.
-
-Habria que revisar la skill y crear el comando que use esa skill, ademas habria que ver si la skill no esta demasiado sobrecargada y hay que llevar carga al comando.
+- [ ] basarse en 3djuegos
+- [ ] mega menu buscador
+- [ ] cuando tenga muchos blogs igual hay que meter barra lateral con opciones de busqueda y menus...
+- [ ] activar suscripciones
+- [ ] Sistema de Valoración (Estrellas): Deja que los usuarios voten los juegos de los que hablas. Esto genera "Rich Snippets" (estrellas en los resultados de Google) y atrae más clics.
+- [ ] Modo Oscuro (Dark Mode): En el mundo gaming es casi un estándar. Un interruptor "Luna/Sol" en el menú mejora mucho la UX.
+- [ ] Barra de Lectura: Una línea fina que avanza según haces scroll. Ayuda a retener al usuario en posts largos.
+- [ ] Menu movil
 
 
 # error al relacionar los post creados en post-ideas
