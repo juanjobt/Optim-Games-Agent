@@ -279,24 +279,48 @@ def main():
     print(f"  Usuario WP: {wp_user}")
 
     ext = Path(args.url.split("?")[0]).suffix or ".jpg"
-    safe_name = args.game.lower().replace(" ", "_").replace("/", "_")
-    prefix = args.type
-    tmp_dir = tempfile.gettempdir()
-    tmp_path = os.path.join(tmp_dir, f"{prefix}_{safe_name}{ext}")
+    # Sanea el nombre del juego: descarta cualquier caracter que no sea
+    # alfanumerico, "-" o "_". Evita caracteres ilegales en rutas de Windows
+    # (como ":", "*", "?", '"', "<", ">", "|") que rompen os.remove() al
+    # interpretarse como Alternate Data Streams. Alineado con generate_image.py.
+    safe_name = "".join(
+        c if c.isalnum() or c in "-_" else "_"
+        for c in args.game.lower().replace(" ", "_")
+    ).strip("_") or "image"
+    prefix = f"{args.type}_{safe_name}"
 
-    download_image(args.url, tmp_path)
+    # Nombre temporal UNICO por proceso via mkstemp. Evita colisiones cuando
+    # se lanzan varios screenshots en paralelo (calls bash simultaneas) que
+    # antes escribian sobre el mismo path literal y provocaban FileNotFoundError
+    # en el os.remove() final (el primer proceso en llegar borraba el archivo
+    # compartido y los demas fallaban).
+    fd, tmp_path = tempfile.mkstemp(suffix=ext, prefix=prefix + "_")
+    os.close(fd)  # libera el descriptor para que download_image reabra el path
 
-    media_id, source_url = upload_to_wordpress(
-        tmp_path, wp_base_url, auth_header,
-        args.post_id or 0, args.game, args.type,
-        alt_text, caption, description,
-    )
+    media_id = 0
+    source_url = ""
+    try:
+        download_image(args.url, tmp_path)
 
-    if args.type == "portada" and args.post_id:
-        set_featured_image(wp_base_url, auth_header, args.post_id, media_id)
+        media_id, source_url = upload_to_wordpress(
+            tmp_path, wp_base_url, auth_header,
+            args.post_id or 0, args.game, args.type,
+            alt_text, caption, description,
+        )
 
-    os.remove(tmp_path)
-    print(f"  Archivo temporal eliminado")
+        if args.type == "portada" and args.post_id:
+            set_featured_image(wp_base_url, auth_header, args.post_id, media_id)
+    finally:
+        # Limpieza resiliente: el archivo puede no existir ya (ADS en Windows
+        # por ":", borrado por un proceso paralelo, etc.). Nunca debe propagar
+        # FileNotFoundError porque la subida ya completo con exito.
+        try:
+            os.remove(tmp_path)
+            print(f"  Archivo temporal eliminado")
+        except FileNotFoundError:
+            print(f"  AVISO: archivo temporal ya eliminado (omitido)")
+        except OSError as e:
+            print(f"  AVISO: no se pudo eliminar el temporal ({e})")
 
     if args.type == "portada" and args.post_id:
         print(f"\n✓ Imagen subida y asignada correctamente")
