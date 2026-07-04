@@ -38,9 +38,18 @@ import json
 import mimetypes
 import os
 import sys
+import tempfile
 import urllib.error
 import urllib.request
 from pathlib import Path
+
+# Forzar stdout/stderr a UTF-8 para que los print con caracteres Unicode
+# (✓, —) funcionen en consolas que usan codepages legacy (ej: cp1252 en Windows).
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
 
 
 IMAGE_TYPES = ("portada", "screenshot", "concepto")
@@ -272,7 +281,8 @@ def main():
     ext = Path(args.url.split("?")[0]).suffix or ".jpg"
     safe_name = args.game.lower().replace(" ", "_").replace("/", "_")
     prefix = args.type
-    tmp_path = f"/tmp/{prefix}_{safe_name}{ext}"
+    tmp_dir = tempfile.gettempdir()
+    tmp_path = os.path.join(tmp_dir, f"{prefix}_{safe_name}{ext}")
 
     download_image(args.url, tmp_path)
 

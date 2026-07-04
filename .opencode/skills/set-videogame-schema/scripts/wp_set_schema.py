@@ -30,6 +30,14 @@ import sys
 import urllib.request
 import urllib.error
 
+# Forzar stdout/stderr a UTF-8 para que los print con caracteres Unicode
+# (✓, →, —) funcionen en consolas que usan codepages legacy (ej: cp1252 en Windows).
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 
 # ---------------------------------------------------------------------------
 # Constantes
