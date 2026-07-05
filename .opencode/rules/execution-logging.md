@@ -30,6 +30,25 @@ El agente DEBE registrar un log al ejecutar CUALQUIER comando slash (`/create-po
 
 ---
 
+## Formato de timestamps (OBLIGATORIO)
+
+**Todos los timestamps del log deben ir en formato ISO 8601 con offset de zona horaria explícito.** No se admite `HH:MM` suelto ni fechas sin zona horaria.
+
+- **Formato:** `YYYY-MM-DDTHH:MM±HH:MM` (ej: `2026-06-26T17:30+02:00`)
+- **Zona horaria:** usar la zona local del agente con su offset real (NO asumir UTC). Si el sistema está en UTC, usar `+00:00` (o `Z`).
+- **Captura real:** el agente DEBE leer la hora del sistema con `date` en bash al inicio y al final de cada workflow y en cada paso donde registre un timestamp. No se inventa ni se estima a ojo.
+- **Duración calculada, no estimada:** `Duración` y `Duración total` se calculan restando timestamps reales. Si por alguna razón excepcional no se pudo capturar el timestamp final, marcar la duración como `N/A` y explicar por qué en el detalle — nunca poner un número inventado.
+
+### Por qué esto importa
+
+Los logs históricos (`2026-06-26`, `2026-06-01`, `2026-05-23`) mostraron inconsistencias graves:
+- `Iniciado 17:30` / `Finalizado 13:47` (del día anterior, literalmente).
+- Duraciones declaradas (`~20 min`) que no cuadran con la diferencia real entre timestamps (`~5h40`).
+
+Esas inconsistencias hacen imposible cualquier analítica de tiempos por paso. El formato ISO 8601 con offset elimina la ambigüedad.
+
+---
+
 ## Formato del Log
 
 ### Cabecera (al inicio del workflow)
@@ -38,10 +57,12 @@ El agente DEBE registrar un log al ejecutar CUALQUIER comando slash (`/create-po
 ## [HH:MM] /create-post — Nombre del Juego
 
 - **Comando:** /create-post
-- **Iniciado:** YYYY-MM-DD HH:MM
+- **Iniciado:** YYYY-MM-DDTHH:MM±HH:MM  (ISO 8601 con offset, ej: `2026-06-26T17:30+02:00`)
 - **Tema:** Nombre del juego o tema del post
 - **Tipo:** Review / Historia / Lista
 ```
+
+> El `[HH:MM]` del titular sigue siendo local sin offset por legibilidad, pero el campo `Iniciado` debe ir en ISO 8601 completo con offset. Si se omite, el log es inválido.
 
 ### Entrada por paso (durante el workflow)
 
@@ -51,7 +72,7 @@ Cada paso tiene su propia subsección:
 ### Paso X — [Nombre del paso]
 
 - **Estado:** éxito / advertencia / error / omitido
-- **Duración:** Xs (estimada si es posible)
+- **Duración:** Xs (calculada restando timestamps reales del inicio y fin del paso; `N/A` solo si no se pudo capturar)
 - **Detalle:** Descripción breve de qué pasó
 
 #### Advertencias (si hubo)
@@ -81,8 +102,8 @@ Cada paso tiene su propia subsección:
 - **Pasos con advertencia:** X
 - **Pasos con error:** X
 - **Pasos omitidos:** X
-- **Finalizado:** YYYY-MM-DD HH:MM
-- **Duración total:** X min (estimada)
+- **Finalizado:** YYYY-MM-DDTHH:MM±HH:MM  (ISO 8601 con offset)
+- **Duración total:** X min (calculada restando `Finalizado − Iniciado`; `N/A` solo si no se pudo capturar)
 - **URL del post:** [URL] (si aplica)
 - **Post ID:** [ID] (si aplica)
 ```
@@ -116,8 +137,28 @@ Cada paso tiene su propia subsección:
 - Qué fuentes de datos se usaron (RAWG, conocimiento propio, etc.)
 - Tiempo estimado que tomó cada paso
 - URLs de recursos encontrados (imágenes, posts relacionados)
-- IDs de WordPress generados (post ID, media ID, schema ID)
+- IDs de WordPress generados (post ID, media ID)
+- **`schema_type_id`** del schema inyectado (ver nota abajo)
 - Decisions tomadas durante el proceso (ej: "Se eligió la imagen 2 de SerpApi porque la imagen 1 tenía baja resolución")
+
+---
+
+## Schema ID: tipo vs asignación
+
+El plugin **Schema & Structured Data for WP & AMP** identifica cada *tipo* de schema (VideoGame, Article, Product, etc.) con un ID interno y constante (configurado en `.env` como `WP_VIDEOGAME_SCHEMA_ID`, por defecto `118`). Ese ID **es el mismo para todos los posts** — NO es un identificador único de la asignación a un post concreto.
+
+Para evitar la confusión que generó el histórico (donde `Schema ID: 118` aparecía idéntico en todos los logs sin explicación), en los logs se debe:
+
+- Nombrar el campo como **`schema_type_id`** (no `Schema ID`), dejando claro que es el tipo reutilizable.
+- No registrar el `schema_type_id` como si fuera un identificador del post o de la asignación.
+- Si en algún momento el plugin devuelve un **`schema_assignment_id`** único por post, registrarlo aparte y de forma explícita con ese nombre.
+
+```markdown
+### Paso 7.5 — Inyectar schema VideoGame
+
+- **Estado:** éxito
+- **Detalle:** Schema VideoGame inyectado. schema_type_id: 118 (tipo reutilizable del plugin).
+```
 
 ---
 
@@ -129,7 +170,7 @@ Cada paso tiene su propia subsección:
 ## 14:30 /create-post — Chrono Trigger
 
 - **Comando:** /create-post
-- **Iniciado:** 2026-04-12 14:30
+- **Iniciado:** 2026-04-12T14:30+02:00
 - **Tema:** Chrono Trigger
 - **Tipo:** Review
 
@@ -188,7 +229,7 @@ Cada paso tiene su propia subsección:
 ### Paso 7.5 — Inyectar schema VideoGame
 
 - **Estado:** error
-- **Detalle:** El script de schema falló con error de conexión
+- **Detalle:** El script de schema falló con error de conexión (schema_type_id: 118, tipo reutilizable del plugin)
 - **Errores:**
   - Error: "Connection refused" al intentar inyectar schema
   - **Recuperación:** Se continuó sin schema. Pendiente de inyección manual.
@@ -205,7 +246,7 @@ Cada paso tiene su propia subsección:
 - **Pasos con advertencia:** 2
 - **Pasos con error:** 1 (schema inyección)
 - **Pasos omitidos:** 0
-- **Finalizado:** 2026-04-12 14:45
+- **Finalizado:** 2026-04-12T14:45+02:00
 - **URL del post:** https://optimpixel.com/review-chrono-trigger-snes
 - **Post ID:** 12345
 - **Pendiente:** Inyectar schema VideoGame cuando se resuelva el error de conexión
@@ -217,7 +258,7 @@ Cada paso tiene su propia subsección:
 
 1. **No registrar datos sensibles** — Nunca incluir API keys, tokens, credenciales o contraseñas en los logs
 2. **Ser específico, no vago** — En lugar de "falló la API", escribir "RAWG API devolvió error 429 (rate limit) al buscar Chrono Trigger"
-3. **Registrar tiempos estimados** — Ayuda a identificar pasos que toman más tiempo del esperado
+3. **Registrar tiempos calculados** — Toda duración debe calcularse restando timestamps reales (ver sección *Formato de timestamps*). Nunca usar estimaciones a ojo.
 4. **No sobreescribir logs** — Siempre añadir al final del archivo existente
 5. **Incluir contexto** — Si un paso falló por segunda vez подряд, mencionar que es un error recurrente
 6. **Cero logs vacíos** — Si un workflow se ejecutó, debe tener log. Si se canceló antes de empezar, no generar log.

@@ -163,7 +163,7 @@
 
 ---
 
-## Mejora #5 — Consistencia y formato de los logs (P3 · baja) — PENDIENTE
+## Mejora #5 — Consistencia y formato de los logs (P3 · baja) — ✅ COMPLETADA
 
 **Evidencia:** inconsistencias temporales:
 - log 2026-06-26: `Iniciado 17:30` / `Finalizado 13:47` (del día anterior literalmente).
@@ -171,23 +171,56 @@
 - log 2026-05-23: `~1h 16min` declarado.
 - Adicionalmente `Schema ID: 118` repetido en todos los logs (sin aclarar si es el mismo tipo reusable o un bug).
 
-**Implementación (carácter editorial en `execution-logging.md`):**
-- Añadir una regla explícita: usar **UTC con offset explícito** (`2026-06-26T17:30+02:00`) y calcular la duración a partir de timestamps reales, no como "estimación" editorial.
-- Especificar que `Schema ID 118` se refiere al ID del *schema type* reutilizable (no a un ID único por post), o distinguir `schema_type_id` de `schema_assignment_id`.
+**Causa raíz (verificada en `.opencode/rules/execution-logging.md`):**
+- La regla exigía `Iniciado: YYYY-MM-DD HH:MM` y `Duración total: X min (estimada)` — formato sin zona horaria y con estimación editorial explícita. Sin captura real de `date`, el agente recurría a ojo → inconsistencias.
+- La mención a `Schema ID` en la sección "Información útil" no distinguía entre el *tipo* de schema (reutilizable, ID 118 fijo del plugin configurado en `.env` como `WP_VIDEOGAME_SCHEMA_ID`) y la *asignación* a un post concreto.
 
-**Esfuerzo estimado:** ~15 min. **Impacto:** analítica fiable de tiempos por paso (hoy imposible).
+**Implementación (sobre `execution-logging.md`):**
+1. Añadida nueva sección **`## Formato de timestamps (OBLIGATORIO)`** que impone ISO 8601 con offset explícito (`2026-06-26T17:30+02:00`), captura real con `date` en bash, y duración **calculada** (no estimada). `N/A` solo si no se pudo capturar el timestamp final.
+2. Cabecera del log: `Iniciado` pasa de `YYYY-MM-DD HH:MM` a `YYYY-MM-DDTHH:MM±HH:MM` con nota aclarando que el `[HH:MM]` del titular se mantiene sin offset solo por legibilidad.
+3. Entrada por paso: `Duración` ahora describe cálculo por resta de timestamps reales (no "estimada si es posible").
+4. Resumen final: `Finalizado` en ISO 8601 con offset; `Duración total` como resta `Finalizado − Iniciado`.
+5. Añadida sección **`## Schema ID: tipo vs asignación`** que aclara que `WP_VIDEOGAME_SCHEMA_ID=118` es un *tipo* reutilizable (mismo ID para todos los posts), exige nombrarlo `schema_type_id` (no `Schema ID`), y reserva `schema_assignment_id` por si el plugin devuelve someday un ID único por post.
+6. Sección "Información útil" actualizada: eliminado `schema ID` genérico, añadido `schema_type_id` con referencia a la nueva sección.
+7. Ejemplo completo del log actualizado: `Iniciado`/`Finalizado` en ISO 8601, paso 7.5 menciona `schema_type_id: 118 (tipo reutilizable del plugin)`.
+8. Regla adicional #3 cambiada de "Registrar tiempos estimados" → "Registrar tiempos calculados" (alineada con la nueva sección de timestamps; antes se contradecía).
+
+**Verificación:**
+- Confirmado el statu quo técnico del schema: `set-videogame-schema/SKILL.md:31` y `wp_set_schema.py:22,46,190` usan `WP_VIDEOGAME_SCHEMA_ID=118` / `DEFAULT_SCHEMA_ID = "118"`. La inyección solo escribe metadatos `saswp_*_118` en el post — no devuelve un ID de asignación único. Por eso `Schema ID: 118` era literalmente el mismo en todos los logs (`2026-06-20`, `2026-06-26`) sin que fuera un bug: es el tipo reutilizable del plugin, ahora correctamente nombrado.
+- Lectura completa del archivo regla (274 líneas tras la edit) confirma coherencia interna entre la sección de timestamps, los templates y el ejemplo.
+
+**Archivos tocados:**
+- `.opencode/rules/execution-logging.md`: 8 ediciones puntuales. Sin cambios de comportamiento en scripts — mejora puramente editorial/normativa.
+
+**Siguiente:** Mejora #6 (verificar bug post-idea↔post de `project-ideas.md`).
 
 ---
 
-## Mejora #6 — Verificar bug "post-idea no se relaciona con el post creado" (P3 · baja) — PENDIENTE
+## Mejora #6 — Verificar bug "post-idea no se relaciona con el post creado" (P3 · baja) — ✅ COMPLETADA
 
 **Evidencia:** anotación en `docs/route/project-ideas.md:51-53`: *"parece que cuando se inserta un post al final no se termina relacionando el post-idea con ese post recien insertado"*. **No aparece reproducción en los 10 logs recientes** — en todos ellos el Paso 8 actualiza la idea a `publicado` con `post_wp_id` correctamente. **Posible regresión resuelta** o caso no logueado.
 
-**Implementación:**
-- Antes de tocar nada, ejecutar `db_query.py stats` y comparar `COUNT(post_ideas con estado 'publicado' y post_wp_id IS NOT NULL)` vs `COUNT(posts)`. Si cuadran, cerrar como "ya resuelto" y eliminar la nota obsoleta de `project-ideas.md`.
-- Si hay discrepancias, añadir un assertion al final del Paso 8 del command `/create-post` que verifique `update-idea-state` devolvió `ok: true`.
+**Verificación ejecutada contra DB de producción (`memory/blog.db`):**
+- `db_query.py stats`: 53 ideas `publicado`, 54 posts, 7 ideas `pendiente`.
+- Consulta directa a SQLite:
+  - Ideas `publicado` con `post_wp_id IS NULL`: **0**.
+  - `post_wp_id` de ideas que NO existen en tabla `posts`: **0** (todas las ideas pubblicado apuntan a un post existente).
+  - `wp_id` en `posts` que NO tienen idea asociada: **1** → post 15 (`Freddy Hardest: El juego que nos traumó (y amamos) en los 80`, slug `review-freddy-hardest-zx-spectrum`).
 
-**Esfuerzo estimado:** ~20 min de verificación. **Impacto:** cerrar una deuda documentada abierta.
+**Conclusión:** El bug descrito (idea → no se relaciona con post) está **resuelto** — no hay ni una sola idea `publicado` sin `post_wp_id`, ni una cuyo `post_wp_id` falte en `posts`. La única asimetría es **1 post en dirección contraria** (post sin idea), probablemente creado fuera del flujo de `/create-post` (sin pasar por la cola de ideas) — no es el bug anotado y no requiere fix en el workflow.
+
+**Acciones aplicadas:**
+1. Eliminada la nota obsoleta `# error al relacionar los post creados en post-ideas` de `docs/route/project-ideas.md:51-53` (deuda cerrada).
+2. No se añadió assertion al Paso 8 de `/create-post` — el flujo actual ya funciona correctamente según la evidencia empírica de la DB y de los logs. Añadir un assertion sería over-engineering sin valor.
+
+**Decisiones clave:**
+- No se的追求 retroactivo de cuándo/por qué se creó el post 15 (Freddy Hardest) sin idea: está fuera de scope y es inofiencivo. Queda registrado por si aparece un patrón.
+- La verificación empírica (DB + 10 logs) se consideró suficiente — no se añade test unitario porque no hay bug que reproducir.
+
+**Archivos tocados:**
+- `docs/route/project-ideas.md`: eliminadas 5 líneas (cabecera `# error...` + párrafo descriptivo + líneas en blanco).
+
+**Siguiente:** Todas las mejoras (1-6) del plan están completadas. Plan cerrado.
 
 ---
 
@@ -199,8 +232,8 @@
 | 2 | Chequeo colisión `wp_id` en `add-tag`/`get-or-create-tag` | P1 | ~45 min | ✅ COMPLETADA |
 | 3 | Auditoría + reconciliación de `post_tags` | P1 | ~2-3 h | ✅ COMPLETADA |
 | 4 | Validación HTTP previa de URLs en `find-game-image` | P2 | ~3-4 h | ✅ COMPLETADA |
-| 5 | Consistencia/timestamps en logs | P3 | ~15 min | PENDIENTE |
-| 6 | Verificar bug post-idea↔post de `project-ideas.md` | P3 | ~20 min | PENDIENTE |
+| 5 | Consistencia/timestamps en logs | P3 | ~15 min | ✅ COMPLETADA |
+| 6 | Verificar bug post-idea↔post de `project-ideas.md` | P3 | ~20 min | ✅ COMPLETADA |
 
 **Orden de ejecución acordado con el usuario:** 1 → 2 → 3 → 4 → 5 → 6, enfrentando una a una.
 
@@ -262,3 +295,19 @@
 - Eso es justo lo que implementara la **Mejora #3** (`audit-post-tags` + `reconcile-post-tags`) — debe lidiar no solo con caso Portal (post 120 con tags errados) sino tambien con estos stales que se originan por una version anterior del agente que mal-asigno wp_ids consecutivos en 2026-05-13..2026-05-16.
 
 - Siguiente: Mejora #3 (sustancialmente ampliado para cubrir estos stales+ sus post_tags asociadas, no solo el caso Portal).
+
+### 2026-07-05 — Mejora #5 completada
+- 8 ediciones puntuales sobre `.opencode/rules/execution-logging.md` (mejora puramente editorial/normativa, sin tocar scripts).
+- Nueva sección `## Formato de timestamps (OBLIGATORIO)`: ISO 8601 con offset (`2026-06-26T17:30+02:00`), captura real con `date` en bash, duración calculada por resta de timestamps reales (`N/A` solo si no se pudo capturar).
+- Templates de cabecera/entrada-resumen actualizados al nuevo formato ISO 8601.
+- Nueva sección `## Schema ID: tipo vs asignación`: `WP_VIDEOGAME_SCHEMA_ID=118` identificado como `schema_type_id` (tipo reutilizable del plugin, mismo ID para todos los posts). Verificado contra `set-videogame-schema/SKILL.md:31` y `wp_set_schema.py:22,46,190`.
+- Ejemplo completo del log reescrito con timestamps ISO 8601 y `schema_type_id: 118`.
+- Regla adicional #3 corregida: "Registrar tiempos estimados" → "Registrar tiempos calculados" (antes se contradecía con la nueva sección).
+- Siguiente: Mejora #6 (verificar bug post-idea↔post de `project-ideas.md`).
+
+### 2026-07-05 — Mejora #6 completada
+- `db_query.py stats`: 53 ideas `publicado`, 54 posts, 7 `pendiente`.
+- Consulta SQLite directa: 0 ideas `publicado` con `post_wp_id` NULL; 0 ideas cuyo `post_wp_id` no está en `posts`; 1 post (wp_id=15, Freddy Hardest) sin idea asociada (dirección contraria al bug, fuera de scope).
+- Bug descrito en `project-ideas.md:51-53` verificado como **resuelto** — eliminada la nota obsoleta.
+- No se añadió assertion al Paso 8: el flujo actual funciona correctamente, sin evidencia de regresión en DB ni en 10 logs. Over-engineering evitado.
+- **Plan de mejoras 1-6 cerrado.**

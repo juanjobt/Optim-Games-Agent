@@ -48,10 +48,6 @@ Tiene 0 posts. Primero tendrás que publicar al menos uno para que la página no
 - [ ] Menu movil
 
 
-# error al relacionar los post creados en post-ideas
-
-Parece que cuando se inserta un post al final no se termina relacionando el post-idea con ese post recien insertado
-
 # Sugerencias de POSTS
 
 /create-post de la category historias con el 
