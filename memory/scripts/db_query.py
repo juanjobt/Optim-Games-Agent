@@ -17,6 +17,7 @@ Subcomandos:
   db_query.py get-tag --wp-id N
   db_query.py get-or-create-tag --name "Nombre exacto" --group <group_slug> [--wp-id N]
   db_query.py add-tag --name "..." --slug "..." --group <group_slug> --wp-id N
+  db_query.py detect-stale-tags [--fix]          # Audita wp_ids locales vs WordPress
 
   # Posts
   db_query.py get-post --wp-id N
@@ -39,15 +40,22 @@ Todos los comandos devuelven JSON.
 """
 
 import argparse
+import base64
+import html
 import json
+import os
 import sqlite3
+import subprocess
 import sys
+import urllib.error
+import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent.parent
 DB_PATH = PROJECT_ROOT / "memory" / "blog.db"
+ENV_PATH = PROJECT_ROOT / ".env"
 
 VALID_TYPES = ("Review", "Historias", "Listas")
 VALID_STATES = ("pendiente", "en_uso", "publicado")
@@ -258,6 +266,24 @@ def cmd_add_tag(args):
             out({"ok": False, "error": f"Tag '{args.name}' ya existe con wp_id={existing['wp_id']}"})
             return
 
+        # Chequeo de colision de wp_id
+        collision = conn.execute(
+            "SELECT name, slug FROM tags WHERE wp_id = ?", (int(args.wp_id),)
+        ).fetchone()
+        if collision and collision["name"] != args.name:
+            out({
+                "ok": False,
+                "error": (
+                    f"Conflicto de wp_id {args.wp_id}: ya asignado en DB local "
+                    f"a '{collision['name']}' (slug='{collision['slug']}'). "
+                    f"Ejecuta 'db_init.py sync-tags-wp' para reconciliar, o "
+                    f"verifica el ID devuelto por WordPress."
+                ),
+                "conflict_with": dict(collision),
+                "hint": "db_init.py sync-tags-wp",
+            })
+            return
+
         now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
         conn.execute(
             "INSERT INTO tags (wp_id, name, slug, group_id, created_at) VALUES (?, ?, ?, ?, ?)",
@@ -286,6 +312,25 @@ def cmd_get_or_create_tag(args):
             out({"ok": True, "tag": row_to_dict(row), "created": False})
             return
 
+        # Chequeo de colision de wp_id antes de crear
+        if args.wp_id is not None:
+            collision = conn.execute(
+                "SELECT name, slug FROM tags WHERE wp_id = ?", (int(args.wp_id),)
+            ).fetchone()
+            if collision and collision["name"] != args.name:
+                out({
+                    "ok": False,
+                    "error": (
+                        f"Conflicto de wp_id {args.wp_id}: ya asignado en DB local "
+                        f"a '{collision['name']}' (slug='{collision['slug']}'). "
+                        f"Ejecuta 'db_init.py sync-tags-wp' para reconciliar, o "
+                        f"verifica el ID devuelto por WordPress."
+                    ),
+                    "conflict_with": dict(collision),
+                    "hint": "db_init.py sync-tags-wp",
+                })
+                return
+
         slug = args.slug or args.name.lower().replace(" ", "-")
         wp_id = args.wp_id
         now = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -298,6 +343,135 @@ def cmd_get_or_create_tag(args):
         out({"ok": True, "tag": row_to_dict(new_row), "created": True})
     except Exception as e:
         conn.rollback()
+        out({"ok": False, "error": str(e)})
+    finally:
+        conn.close()
+
+
+def _load_env():
+    """Carga minimamente las credenciales WP desde .env (autocontenido, sin
+    depender de db_init.py)."""
+    env = {}
+    try:
+        with open(ENV_PATH) as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    key, _, value = line.partition("=")
+                    env[key.strip()] = value.strip().strip('"').strip("'")
+    except FileNotFoundError:
+        pass
+    return env
+
+
+def _wp_get_config():
+    """Devuelve (wp_base_url, auth_header) o (None, None) si faltan credenciales."""
+    env = _load_env()
+    wp_base_url = env.get("WP_BASE_URL") or os.environ.get("WP_BASE_URL")
+    wp_user = env.get("WP_USER") or os.environ.get("WP_USER")
+    wp_app_password = env.get("WP_APP_PASSWORD") or os.environ.get("WP_APP_PASSWORD")
+    if not wp_base_url or not wp_user or not wp_app_password:
+        return None, None
+    credentials = base64.b64encode(f"{wp_user}:{wp_app_password}".encode()).decode()
+    return wp_base_url.rstrip("/"), f"Basic {credentials}"
+
+
+def _wp_fetch_all_tags(wp_base_url, auth_header):
+    """Descarga todos los tags de WordPress con paginacion.
+
+    Normaliza HTML entities del campo 'name' porque la REST API de WP los
+    escapa automaticamente (ej: 'Sonic 3 & Knuckles' se devuelve como
+    'Sonic 3 &amp; Knuckles'). Sin este paso, detect-stale-tags generaria
+    falsos positivos cuando el name local tiene '&' sin escapar.
+    """
+    all_tags = []
+    page = 1
+    while True:
+        url = f"{wp_base_url}/wp-json/wp/v2/tags?fields=id,name,slug,count&per_page=100&page={page}"
+        req = urllib.request.Request(url, headers={"Authorization": auth_header})
+        with urllib.request.urlopen(req, timeout=30) as response:
+            items = json.loads(response.read().decode("utf-8"))
+        if not items:
+            break
+        for t in items:
+            if isinstance(t.get("name"), str):
+                t["name"] = html.unescape(t["name"])
+        all_tags.extend(items)
+        if len(items) < 100:
+            break
+        page += 1
+    return all_tags
+
+
+def cmd_detect_stale_tags(args):
+    """Detecta tags locales cuyo wp_id apunta, en WordPress, a un tag con
+    nombre distinto (stale wp_id). Es el sintoma del scenario documentado en
+    el log 2026-05-11 (Cadillacs & Dinosaurs vs Nazca Corporation).
+
+    Sin --fix solo reporta. Con --fix ejecuta sync-tags-wp de db_init.py
+    (que corrige wp_id actualizando al ID real segun name) y re-valida.
+    """
+    wp_base_url, auth_header = _wp_get_config()
+    if not wp_base_url:
+        out({"ok": False, "error": "No se pudieron leer las credenciales de WordPress para verificacion. Verifica .env (WP_BASE_URL, WP_USER, WP_APP_PASSWORD)."})
+        return
+
+    try:
+        wp_tags = _wp_fetch_all_tags(wp_base_url, auth_header)
+    except Exception as e:
+        out({"ok": False, "error": f"Error al consultar tags de WordPress: {e}"})
+        return
+
+    wp_by_id = {t["id"]: t for t in wp_tags}
+
+    conn = get_conn()
+    try:
+        local_tags = conn.execute("SELECT wp_id, name, slug, group_id FROM tags").fetchall()
+
+        stale = []
+        missing_in_wp = []
+        for tag in local_tags:
+            wp_id = tag["wp_id"]
+            wp_tag = wp_by_id.get(wp_id)
+            if wp_tag is None:
+                missing_in_wp.append({
+                    "local_wp_id": wp_id,
+                    "local_name": tag["name"],
+                    "local_slug": tag["slug"],
+                    "issue": f"wp_id {wp_id} no existe en WordPress (¿tag borrado en WP?)",
+                })
+            elif wp_tag["name"] != tag["name"]:
+                stale.append({
+                    "local_wp_id": wp_id,
+                    "local_name": tag["name"],
+                    "local_slug": tag["slug"],
+                    "wp_name": wp_tag["name"],
+                    "wp_slug": wp_tag["slug"],
+                    "issue": f"wp_id {wp_id} en DB local apunta a '{tag['name']}' pero en WP es '{wp_tag['name']}'",
+                })
+
+        local_wp_ids = {t["wp_id"] for t in local_tags}
+        wp_only = [t for t in wp_tags if t["id"] not in local_wp_ids]
+
+        result = {
+            "ok": True,
+            "stale_count": len(stale),
+            "missing_in_wp_count": len(missing_in_wp),
+            "wp_only_count": len(wp_only),
+            "stale": stale,
+            "missing_in_wp": missing_in_wp,
+            "wp_only": [{"wp_id": t["id"], "name": t["name"], "slug": t["slug"]} for t in wp_only],
+        }
+
+        if args.fix and (stale or missing_in_wp):
+            sync_script = str(SCRIPT_DIR / "db_init.py")
+            out({"ok": True, "message": f"Detectados {len(stale)} stale + {len(missing_in_wp)} missing. Ejecutando sync-tags-wp para reconciliar...", "pre_fix_state": result})
+            proc = subprocess.run([sys.executable, sync_script, "sync-tags-wp"], capture_output=True, text=True)
+            out({"ok": True, "sync_output": proc.stdout, "sync_errors": proc.stderr, "returncode": proc.returncode})
+            return
+
+        out(result)
+    except Exception as e:
         out({"ok": False, "error": str(e)})
     finally:
         conn.close()
@@ -671,6 +845,9 @@ def main():
     p_get_or_create.add_argument("--wp-id", type=int, default=None)
     p_get_or_create.add_argument("--slug", type=str, default=None)
 
+    p_detect_stale = sub.add_parser("detect-stale-tags", help="Detecta tags locales con wp_id desincronizado respecto a WordPress")
+    p_detect_stale.add_argument("--fix", action="store_true", help="Ejecuta sync-tags-wp para corregir los tags stale detectados")
+
     # -- Posts --
     p_get_post = sub.add_parser("get-post", help="Obtiene un post por wp_id o slug")
     p_get_post.add_argument("--wp-id", type=int, default=None)
@@ -727,6 +904,7 @@ def main():
         "get-tag": cmd_get_tag,
         "add-tag": cmd_add_tag,
         "get-or-create-tag": cmd_get_or_create_tag,
+        "detect-stale-tags": cmd_detect_stale_tags,
         "get-post": cmd_get_post,
         "add-post": cmd_add_post,
         "add-post-tags": cmd_add_post_tags,

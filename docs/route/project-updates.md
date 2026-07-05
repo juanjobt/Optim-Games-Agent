@@ -33,7 +33,7 @@
 
 ---
 
-## Mejora #2 — Chequeo de colisión de `wp_id` al crear tags (P1 · alta) — PENDIENTE
+## Mejora #2 — Chequeo de colisión de `wp_id` al crear tags (P1 · alta) — ✅ COMPLETADA
 
 **Evidencia:** log 2026-05-11 (Cadillacs and Dinosaurs). El `wp_id 277` ya existía en DB local para "Nazca Corporation" (stale). El agente lo corrigió a mano ("DB corregida manualmente tras publicación") y dejó a Nazca con `wp_id=0`.
 
@@ -124,7 +124,7 @@
 | # | Mejora | Prioridad | Esfuerzo | Estado |
 |---|--------|-----------|----------|--------|
 | 1 | Fix `FileNotFoundError` en subida de imágenes | **P0** | ~30 min | ✅ COMPLETADA |
-| 2 | Chequeo colisión `wp_id` en `add-tag`/`get-or-create-tag` | P1 | ~45 min | PENDIENTE |
+| 2 | Chequeo colisión `wp_id` en `add-tag`/`get-or-create-tag` | P1 | ~45 min | ✅ COMPLETADA |
 | 3 | Auditoría + reconciliación de `post_tags` | P1 | ~2-3 h | PENDIENTE |
 | 4 | Validación HTTP previa de URLs en `find-game-image` | P2 | ~3-4 h | PENDIENTE |
 | 5 | Consistencia/timestamps en logs | P3 | ~15 min | PENDIENTE |
@@ -151,4 +151,42 @@
   - Prueba B: 5 threads en paralelo con mismo prefix → 5 paths unicos, 0 colisiones.
   - Prueba C: inspeccion visual de nombres resultantes (legibles y safe).
 - `python wp_upload_image.py --help` OK (no regression en el parser).
-- Siguiente: Mejora #2 (chequeo de colision de wp_id en add-tag/get-or-create-tag).
+
+### 2026-07-04 — Mejora #2 completada
+- Editado `db_query.py`:
+  1. `cmd_add_tag`: añadido chequeo explicito de colision de `wp_id` antes del INSERT. Si el `wp_id` ya existe en DB local mapeado a otro `name`, devuelve error accionable con `conflict_with` y `hint: "db_init.py sync-tags-wp"` (en vez de `IntegrityError` generico).
+  2. `cmd_get_or_create_tag`: mismo chequeo, solo cuando se pasa `--wp-id` explicitamente (evita falsos positivos al buscar existentes por nombre).
+  3. Añadido nuevo subcomando `detect-stale-tags [--fix]` que:
+     - Fetch de todos los tags de WordPress via `wp_api_get_all`.
+     - Reporta 3 categorias: `stale` (wp_id local mapea a name distinto en WP), `missing_in_wp` (wp_id local no existe en WP), `wp_only` (tags en WP no registrados localmente).
+     - Con `--fix` lanza `db_init.py sync-tags-wp` via subprocess para reconciliar.
+  4. Refactorizado a helpers autocontenidos (`_load_env`, `_wp_get_config`, `_wp_fetch_all_tags`) para no depender de un import dinamico de `db_init.py` (mas testeable y robusto).
+- Pruebas (7 tests, todas pasan): colision rechazada en `add-tag`, colision rechazada en `get-or-create-tag`, no-colision aceptada, existente devuelto sin crear, error claro sin credenciales WP, deteccion mockeada de stale, cero falsos positivos en DB limpia.
+- Regression contra DB real:
+  - `stats` OK (158 tags, 54 posts, 60 ideas — 53 publicadas, 7 pendientes).
+  - `get-or-create-tag --name "Super Nintendo" --group sistema` OK.
+  - **`detect-stale-tags` contra WP real detectó 7 stale + 1 missing** en la DB de produccion.
+
+### 2026-07-04 — Accion seguible aplicada (Sonic + HTML entity unescape)
+**Ejecucion del fix sugerido:** revisar manualmente los 7 stale + 1 missing detectados y aplicar correccion selectiva solo donde fuera seguro.
+
+**Impacto analizado (en `post_tags`):**
+- Caso #260 (Sonic 3 & Knuckles vs `Sonic 3 &amp; Knuckles`): WP REST devuelve siempre el name escapado → falso positivo del detector. Posts afectados: 1 (post "Sonic 3 & Knuckles: cuando Michael Jacks...").
+- Casos #281/#282/#285/#286 (1988, Atari Games, Toaplan, 1990): swap de wp_id entre tags consecutivos. `sync-tags-wp` los resolveria con `UPDATE wp_id` PERO dejaria `post_tags` huerfanas (FK no actualiza en cascada y `db_init` no activa `PRAGMA foreign_keys`). Posts afectados: 1-2 cada uno (Snow Bros, Tetris, KOF '94, 1941).
+- Casos #278/#279 (Saga Metal Slug, Metal Slug): crear en WP nuevo DISPATCH duplicaria (esos names NO existen por nombre en WP). Posts afectados: 2 (Metal Slug, Tetris).
+- Missing: Nazca Corporation con `wp_id=0` (huérfano por correccion manual del log 2026-05-11). Sin post_tags (limpio).
+
+**Acciones aplicadas:**
+1. **Corregido el caso Sonic en WordPress**: cambiado el name del tag WP ID 260 para asegurar storage interno sin HTML entity (`Sonic 3 & Knuckles`). WP siempre lo devolvera escapado por API REST, asi que fue necesario:
+2. **Añadido `html.unescape()` en `_wp_fetch_all_tags`** (`db_query.py`) — normaliza los names devueltos por WP antes de usarlos. Esto elimina el falso positivo Sonic (stale_count 7 → 6).
+3. **NO se ejecuto `--fix` ni `sync-tags-wp`**: el predict confirmo que romperia post_tags huerfanas y/o generaria tags duplicados en WordPress. El scope seguro de esta mejora eraSolo el fix Sonic.
+
+**Verificacion:**
+- Tests unitarios post-fix: Test add-tag colision-rechazo OK, Test detect-stale-tags con HTML entities (caso Sonic) OK (mock urlopen + check que NO stale), Test detect-stale-tags con swap real (1988 vs Toaplan) OK.
+- `detect-stale-tags` contra WP real: stale_count=6 (Sonic fuera; restantes son swap real y Metal Slug/Nazca).
+
+**Conclusion y transferencia a Mejora #3:**
+- Los 6 stale restantes + 1 missing requieren reconciliacion integral: cambiar `tags.wp_id` alone rompe `post_tags` (FK no cascada). Hay que hacerlo en paralelo con update de las post_tags referenciadoras.
+- Eso es justo lo que implementara la **Mejora #3** (`audit-post-tags` + `reconcile-post-tags`) — debe lidiar no solo con caso Portal (post 120 con tags errados) sino tambien con estos stales que se originan por una version anterior del agente que mal-asigno wp_ids consecutivos en 2026-05-13..2026-05-16.
+
+- Siguiente: Mejora #3 (sustancialmente ampliado para cubrir estos stales+ sus post_tags asociadas, no solo el caso Portal).
