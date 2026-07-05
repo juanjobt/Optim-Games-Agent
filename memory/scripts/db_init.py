@@ -365,6 +365,10 @@ def cmd_sync_posts_wp(args):
         print(json.dumps({"ok": False, "error": "No se pudieron leer las credenciales de WordPress"}), file=sys.stderr)
         sys.exit(1)
 
+    reconcile = bool(getattr(args, "reconcile", False))
+    if reconcile:
+        print("  Modo --reconcile: post_tags se reescriben (DELETE+INSERT) en vez de INSERT OR IGNORE aditivo")
+
     categories = wp_api_get_all("categories", wp_base_url, auth_header, {"fields": "id,name,slug,count"})
     cat_by_id = {c["id"]: c for c in categories}
 
@@ -372,8 +376,12 @@ def cmd_sync_posts_wp(args):
     print(f"  Obtenidos {len(wp_posts)} posts de WordPress")
 
     conn = get_conn()
+    conn.execute("PRAGMA foreign_keys = ON")
     inserted_posts = 0
+    updated_posts = 0
     inserted_tags = 0
+    deleted_tags = 0
+    skipped_tags_not_in_db = 0
     errors = []
 
     for post in wp_posts:
@@ -391,36 +399,84 @@ def cmd_sync_posts_wp(args):
                 cat_slug = cat_by_id[primary_cat].get("slug", "reviews")
 
         try:
-            conn.execute(
-                """INSERT OR IGNORE INTO posts (wp_id, title, slug, category_slug, status, published_at, created_at, updated_at)
-                   VALUES (?, ?, ?, ?, 'publish', ?, datetime('now'), datetime('now'))""",
-                (wp_id, title, slug, cat_slug, published_at),
-            )
-            inserted_posts += 1
+            existing = conn.execute("SELECT wp_id FROM posts WHERE wp_id = ?", (wp_id,)).fetchone()
+            if existing:
+                # Update de title/slug/category/published_at (refresco, no solo ignore)
+                conn.execute(
+                    """UPDATE posts SET title = ?, slug = ?, category_slug = ?, status = 'publish',
+                       published_at = ?, updated_at = datetime('now') WHERE wp_id = ?""",
+                    (title, slug, cat_slug, published_at, wp_id),
+                )
+                updated_posts += 1
+            else:
+                conn.execute(
+                    """INSERT INTO posts (wp_id, title, slug, category_slug, status, published_at, created_at, updated_at)
+                       VALUES (?, ?, ?, ?, 'publish', ?, datetime('now'), datetime('now'))""",
+                    (wp_id, title, slug, cat_slug, published_at),
+                )
+                inserted_posts += 1
         except Exception as e:
             errors.append(f"Error insertando post {wp_id}: {e}")
             continue
 
+        if reconcile:
+            # Reescritura completa: DELETE + INSERT segun WP.
+            # FK offendrien si intentamos DELETE tags que no existen en tabla tags local,
+            # pero DELETE de post_tags no valida FK contra tags (solo contra posts via la
+            # particion post_wp_id que SI existe). Asi que es seguro.
+            cur = conn.execute("DELETE FROM post_tags WHERE post_wp_id = ?", (wp_id,))
+            deleted_tags += cur.rowcount or 0
+
         for tag_id in tag_ids:
             try:
-                conn.execute(
-                    "INSERT OR IGNORE INTO post_tags (post_wp_id, tag_wp_id) VALUES (?, ?)",
-                    (wp_id, tag_id),
-                )
-                inserted_tags += 1
+                if reconcile:
+                    # Verificamos que el tag exista en tabla tags local (evita FK violation)
+                    tag_exists = conn.execute("SELECT 1 FROM tags WHERE wp_id = ?", (tag_id,)).fetchone()
+                    if not tag_exists:
+                        skipped_tags_not_in_db += 1
+                        continue
+                    conn.execute(
+                        "INSERT OR IGNORE INTO post_tags (post_wp_id, tag_wp_id) VALUES (?, ?)",
+                        (wp_id, tag_id),
+                    )
+                    inserted_tags += 1
+                else:
+                    conn.execute(
+                        "INSERT OR IGNORE INTO post_tags (post_wp_id, tag_wp_id) VALUES (?, ?)",
+                        (wp_id, tag_id),
+                    )
+                    inserted_tags += 1
+            except sqlite3.IntegrityError as e:
+                # FK no valido (tag no existe en tabla tags local). En modo NO reconcile
+                # el INSERT falla silenciosamente; en modo reconcile lo skippeamos arriba.
+                skipped_tags_not_in_db += 1
             except Exception as e:
                 errors.append(f"Error insertando post_tag ({wp_id}, {tag_id}): {e}")
 
     conn.commit()
     conn.close()
 
-    print(f"  Insertados {inserted_posts} posts y {inserted_tags} relaciones post_tags")
+    print(f"  Posts: {inserted_posts} nuevos, {updated_posts} actualizados")
+    if reconcile:
+        print(f"  post_tags: {deleted_tags} eliminadas, {inserted_tags} insertadas, {skipped_tags_not_in_db} omitidas (tag no en DB local)")
+    else:
+        print(f"  {inserted_tags} relaciones post_tags insertadas (modo aditivo)")
     if errors:
         print(f"  {len(errors)} errores:")
         for err in errors:
             print(f"    - {err}")
 
-    result = {"ok": True, "posts_inserted": inserted_posts, "post_tags_inserted": inserted_tags, "errors": errors}
+    result = {
+        "ok": True,
+        "posts_inserted": inserted_posts,
+        "posts_updated": updated_posts,
+        "post_tags_inserted": inserted_tags,
+        "errors": errors,
+    }
+    if reconcile:
+        result["post_tags_deleted"] = deleted_tags
+        result["post_tags_skipped_not_in_db"] = skipped_tags_not_in_db
+        result["mode"] = "reconcile"
     print(json.dumps(result, ensure_ascii=False))
 
 
@@ -434,7 +490,11 @@ def main():
 
     sub.add_parser("init", help="Crear tablas y datos iniciales (tag_groups, preserva internal_links)")
     sub.add_parser("sync-tags-wp", help="Sincronizar wp_ids de tags con WordPress")
-    sub.add_parser("sync-posts-wp", help="Poblar posts y post_tags desde WordPress")
+    p_sync_posts = sub.add_parser("sync-posts-wp", help="Poblar posts y post_tags desde WordPress")
+    p_sync_posts.add_argument(
+        "--reconcile", action="store_true",
+        help="Reescribe post_tags (DELETE+INSERT) en vez de INSERT OR IGNORE aditivo, y refresca title/slug/category de posts existentes",
+    )
 
     args = parser.parse_args()
 

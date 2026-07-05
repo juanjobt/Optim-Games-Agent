@@ -49,7 +49,7 @@
 
 ---
 
-## Mejora #3 — Auditoría y reconciliación de `post_tags` (P1 · alta) — PENDIENTE
+## Mejora #3 — Auditoría y reconciliación de `post_tags` (P1 · alta) — ✅ COMPLETADA
 
 **Evidencia:** log 2026-06-07. El post 120 (Portal) tiene en DB local `Dinamic Software, 1987, España, Años 80, Arcade` (cualquier cosa salvo Valve). `find-related` produjo enlaces a Pang y Freddy Hardest — técnicamente correctos dado el estado de la DB, editorialmente absurdos.
 
@@ -59,14 +59,59 @@
 - **No existe ningún comando de auditoría.** Confirmado por grep exhaustivo de `audit|conflict|stale|reconcil|verific` en todos los `.py`.
 
 **Implementación:**
-1. Nuevo subcomando **`audit-post-tags --wp-id N [--all]`** en `db_query.py`: fetch `GET /wp/v2/posts/{id}?_fields=tags,title,slug` y reportar `tags_en_wp_no_en_db`, `tags_en_db_no_en_wp`, mismatches de nombre.
-2. Nuevo subcomando **`reconcile-post-tags --wp-id N [--dry-run]`** que tras `DELETE FROM post_tags WHERE post_wp_id = N` reinserta con los `tag_wp_id` reales de WordPress.
-3. Añadir flag **`--reconcile`** a `sync-posts-wp` para que refresque (no solo ignore) `posts.title/slug` y `post_tags`.
-4. Añadir un `--validate` en `find-related` que advierta si los tags locales del post origen no cuadran con los de WordPress, sin bloquear.
+1. Nuevo subcomando **`audit-post-tags --wp-id N | --all`** en `db_query.py`: fetch `GET /wp/v2/posts/{id}?_fields=id,title,slug,tags` + `_wp_fetch_all_tags`, reportar `in_wp_not_in_db`, `in_db_not_in_wp` y `name_mismatches` (caso stale tags en tabla tags).
+2. Nuevo subcomando **`reconcile-post-tags --wp-id N | --all [--dry-run]`** en `db_query.py`: DELETE de las `post_tags` cuyo `tag_wp_id` no está en WP para ese post + INSERT de las que WP tiene y local falta (solo si el tag existe en tabla tags local; las ausentes se reportan en `tags_in_wp_not_in_local_db`). El dry-run no toca la DB.
+3. Flag **`--reconcile`** en `sync-posts-wp` (`db_init.py`): reescribe `post_tags` (DELETE+INSERT) en vez de `INSERT OR IGNORE` aditivo, y refresca `posts.title/slug/category_slug/published_at` de los posts existentes (en vez de `INSERT OR IGNORE`). Reporta `posts_updated` y `post_tags_deleted`.
+4. Flag **`--validate`** en `find-related` (`manage-internal-links.py`): añade un bloque `validation` al output con `is_valid`, `in_wp_not_in_db`, `in_db_not_in_wp` y `name_mismatches` para el post fuente. No bloquea, solo advierte.
+5. Helpers `_wp_fetch_post` y `_wp_fetch_all_posts` añadidos a `db_query.py`; helpers `_fetch_all_wp_tags` (con `html.unescape`) y `_fetch_wp_post` añadidos a `manage-internal-links.py` (autocontenidos, sin dependencia recíproca entre scripts).
 
-**Esfuerzo estimado:** ~2-3 h. **Impacto:** sanea la base de datos de relaciones internas, hace determinista que los enlaces internos sean coherentes. Altísimo valor SEO: cada enlace absurdo es ruido.
+**Pruebas (6 tests unitarios, todos pasan sobre DB SQLite temporal con HTTP mock):**
+- T1: audit-post-tags detecta tag stale (#281/>1988 vs WC>Toaplan) + tag extra en WP no en DB local.
+- T2: audit-post-tags sobre post sano devuelve 0 issues.
+- T3: reconcile-post-tags --dry-run no toca la DB (verifica con diff antes/después).
+- T4: reconcile-post-tags real ejecuta DELETE de post_tag extra (tag 888 → WP no lo tiene) y deja intactas las demás.
+- T5: db_init.py sync-posts-wp --reconcile reescribe post_tags de todos los posts, omite tags de WP no en tabla tags local, y refresca posts existentes.
+- T6: find-related --validate genera bloque `validation` con `is_valid=False` + `in_wp_not_in_db` correctamente.
 
-**Nota:** es la mejora más invasiva (toca `db_init.py`, `db_query.py`, `manage-internal-links.py` y añade 2 subcomandos). Evaluaremos hacerla en rama aparte.
+**Aplicación contra DB de producción (5 fases):**
+
+1. **Backup preventivo:** `blog.db.bak_20260705_102229` (147 KB) conservado.
+2. **Auditoría inicial con `audit-post-tags --all`:** detectados **7 posts con divergencia** sobre 54:
+   - 3 posts con `in_db_not_in_wp` (tags en DB local ausentes en WP): Saboteur (#337 - tag 80 FPS), Day of the Tentacle (#700 - tag 265 Atlus), Metal Slug (#769 - tags 277/278/279 Cadillacs/Saga Metal Slug/Metal Slug). Reason: el agente antiguo añadió tags a estos posts mediante `add-post-tags` y luego los tags se eliminaron de WP manualmente.
+   - 4 posts con `name_mismatches` (stale tags en tabla tags): Tetris Arcade (#859, 278/279), Snow Bros (#950, 281/282), KOF '94 (#956, 285/286), 1941 (#981, 286). Reasons: bug de swap wp_id de Mejora #2 — los wp_ids 278/279/281/282/285/286 estaban asignados en DB local a names errados frente a WP.
+   - 0 casos de `in_wp_not_in_db`.
+3. **Dry-run de `reconcile-post-tags --all`:** 3 posts con cambios propuestos (5 DELETE post_tags extra, 0 INSERT).
+4. **Fase A — `reconcile-post-tags --all` ejecutado:** 5 DELETE sobre 3 posts (Saboteur, DotT, Metal Slug), 0 INSERT. Posts ahora cuadran con WP en número de tags.
+5. **Fase B — Swap de 6 wp_ids stale en tabla tags** (transacción atómica con `PRAGMA foreign_keys = OFF`):
+   - Renombrado atómico en 2 fases (temporales `__TMP_SWAP_<id>` → destino final) para evitar violar UNIQUE de `name` y `slug`.
+   - Mapping aplicado:
+     | wp_id | nombre antes (local errado) | nombre después (alineado con WP) | group_id antes | group_id después |
+     |-------|------------------------------|----------------------------------|----------------|------------------|
+     | 278 | Saga Metal Slug              | 1988                             | 7 (Saga)       | 4 (Año)          |
+     | 279 | Metal Slug                   | Atari Games                      | 7 (Saga)       | 5 (Desarrol.)    |
+     | 281 | 1988                         | Toaplan                          | 4 (Año)        | 5 (Desarrol.)    |
+     | 282 | Atari Games                  | 1990                             | 5 (Desarrol.)  | 4 (Año)          |
+     | 285 | Toaplan                      | The King of Fighters '94         | 5 (Desarrol.)  | 7 (Saga)         |
+     | 286 | 1990                         | Saga The King of Fighters        | 4 (Año)        | 7 (Saga)         |
+   - `group_id` realineado por consistencia con tags análogos (verificado patrón: todos los tags `199X` con slug año van a `group_id=4`, todos los `Capcom`/`SNK`/`Square` van a `group_id=5`, todos los `Saga X` van a `group_id=7`).
+   - **Importante:** las `post_tags` NO se tocaron. Hacer el swap de `name`/`slug` en tabla `tags` es suficiente porque las `post_tags` referencian `wp_id`, y los `wp_id` ya son correctos (solo divergían los names).
+
+**Verificación post-fix:**
+- `detect-stale-tags`: `stale_count=0` ✅ (de 6 → 0). Solo permanece el caso histórico `Nazca Corporation wp_id=0` (huérfano del log 2026-05-11, sin post_tags, sin efecto).
+- `audit-post-tags --all`: `posts_with_issues_count=0` ✅ (de 7 → 0). Cero divergencias en in_wp_not_in_db, in_db_not_in_wp y name_mismatches sobre los 54 posts.
+- `manage-internal-links.py find-related --wp-id 950 --validate` sobre post previamente afectado (Snow Bros.): output incluye `validation.is_valid=True`, `count=3` posts relacionados (Ghosts 'n Goblins, Street Fighter II, máquinas recreativas) — todos coherentes editorialmente y consistentes con los tags reales del post en WP.
+
+**Decisiones clave durante implementación:**
+- No ejecutar `detect-stale-tags --fix` ni `sync-tags-wp` a ciegas (corraborado por predict previo de Mejora #2): rompería `post_tags` por FK no-cascada y/o crearía tags duplicados en WP. Se hizo swap atómico en su lugar.
+- `reconcile-post-tags` no crea tags nuevos en WP ni modifica tabla `tags`. Sanea solo relaciones `post_tags`. Para fix de names en tabla `tags` se aplicó la fase B complementaria en el mismo workflow.
+- `audit-post-tags --all` solo procesa posts en la tabla local `posts`. Detectó 3 orphan post_tags en post 853 (post_wp_id no presente en `posts` local) durante análisis adicional — fuera del scope del subcomando (no es su responsabilidad cubrir orphans); registrados para limpieza futura si hace falta.
+
+**Archivos tocados:**
+- `memory/scripts/db_query.py`: añadidos `_wp_fetch_post`, `_wp_fetch_all_posts`, `_audit_one_post`, `cmd_audit_post_tags`, `cmd_reconcile_post_tags`. Parser + dispatch actualizados. Bug typo `missing_in_local_db` (vs `missing_in_local`) corregido en 2 sitios.
+- `memory/scripts/db_init.py`: `cmd_sync_posts_wp` refactorizado para soportar `--reconcile`. Ahora hace UPDATE en `posts` existentes (no solo `INSERT OR IGNORE`) y DELETE+INSERT en `post_tags` cuando se pasa `--reconcile`. Reporta `posts_updated` y `post_tags_deleted`.
+- `.opencode/skills/link-related-posts/scripts/manage-internal-links.py`: añadidos helpers `_fetch_all_wp_tags`, `_fetch_wp_post` y función `_validate_post_tags`; `find_related` actualizado para pasar `validate` flag e incluir bloque `validation` en output; `cmd_find_related` resuelve `wp_config` cuando `--validate` se usa; parser con flag nuevo.
+
+**Siguiente:** Mejora #4 (validación HTTP previa de URLs en `find-game-image`).
 
 ---
 
@@ -125,7 +170,7 @@
 |---|--------|-----------|----------|--------|
 | 1 | Fix `FileNotFoundError` en subida de imágenes | **P0** | ~30 min | ✅ COMPLETADA |
 | 2 | Chequeo colisión `wp_id` en `add-tag`/`get-or-create-tag` | P1 | ~45 min | ✅ COMPLETADA |
-| 3 | Auditoría + reconciliación de `post_tags` | P1 | ~2-3 h | PENDIENTE |
+| 3 | Auditoría + reconciliación de `post_tags` | P1 | ~2-3 h | ✅ COMPLETADA |
 | 4 | Validación HTTP previa de URLs en `find-game-image` | P2 | ~3-4 h | PENDIENTE |
 | 5 | Consistencia/timestamps en logs | P3 | ~15 min | PENDIENTE |
 | 6 | Verificar bug post-idea↔post de `project-ideas.md` | P3 | ~20 min | PENDIENTE |

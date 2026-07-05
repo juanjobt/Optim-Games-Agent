@@ -68,6 +68,35 @@ def wp_get(endpoint, wp_base_url, auth_header):
         raise RuntimeError(f"HTTP {e.code}: {error_body}")
 
 
+def _fetch_all_wp_tags(wp_base_url, auth_header):
+    """Descarga todos los tags de WP normalizando HTML entities del name."""
+    import html
+    all_tags = []
+    page = 1
+    while True:
+        url = f"{wp_base_url}/wp-json/wp/v2/tags?fields=id,name,slug,count&per_page=100&page={page}"
+        req = urllib.request.Request(url, headers={"Authorization": auth_header})
+        with urllib.request.urlopen(req, timeout=30) as response:
+            items = json.loads(response.read().decode("utf-8"))
+        if not items:
+            break
+        for t in items:
+            if isinstance(t.get("name"), str):
+                t["name"] = html.unescape(t["name"])
+        all_tags.extend(items)
+        if len(items) < 100:
+            break
+        page += 1
+    return all_tags
+
+
+def _fetch_wp_post(wp_id, wp_base_url, auth_header):
+    url = f"{wp_base_url}/wp-json/wp/v2/posts/{wp_id}?_fields=id,title,slug,tags"
+    req = urllib.request.Request(url, headers={"Authorization": auth_header})
+    with urllib.request.urlopen(req, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
 def get_conn():
     if not DB_PATH.exists():
         print(json.dumps({
@@ -85,7 +114,84 @@ def out(data):
     print(json.dumps(data, ensure_ascii=False, default=str))
 
 
-def find_related(conn, wp_id, limit):
+def _validate_post_tags(conn, wp_id, wp_base_url, auth_header):
+    """Compara post_tags locales contra WordPress para el post wp_id.
+
+    Devuelve dict con:
+      - is_valid: bool
+      - in_wp_not_in_db: lista de tag_wp_id en WP ausentes en DB local
+      - in_db_not_in_wp: lista de tag_wp_id en DB local ausentes en WP
+      - name_mismatches: lista de wp_id presente en ambos pero name divergente
+      - message: mensaje humano con el resumen
+    No lanza — captura errores de red. En caso de fallo de WP devuelve
+    is_valid=True y un warning (no bloqueamos la operacion principal).
+    """
+    try:
+        wp_tags = _fetch_all_wp_tags(wp_base_url, auth_header)
+    except Exception as e:
+        return {
+            "is_valid": True,
+            "warning": f"No se pudo validar contra WordPress: {e}",
+        }
+    wp_tags_by_id = {t["id"]: t for t in wp_tags}
+
+    try:
+        wp_post = _fetch_wp_post(wp_id, wp_base_url, auth_header)
+    except Exception as e:
+        return {
+            "is_valid": True,
+            "warning": f"No se pudo obtener post {wp_id} de WP: {e}",
+        }
+
+    wp_tag_ids = set(wp_post.get("tags") or [])
+    local_rows = conn.execute(
+        "SELECT tag_wp_id FROM post_tags WHERE post_wp_id = ?", (wp_id,)
+    ).fetchall()
+    local_tag_ids = {r["tag_wp_id"] for r in local_rows}
+
+    in_wp_not_in_db = sorted(wp_tag_ids - local_tag_ids)
+    in_db_not_in_wp = sorted(local_tag_ids - wp_tag_ids)
+
+    name_mismatches = []
+    for tid in sorted(wp_tag_ids & local_tag_ids):
+        local_name_row = conn.execute(
+            "SELECT name FROM tags WHERE wp_id = ?", (tid,)
+        ).fetchone()
+        wp = wp_tags_by_id.get(tid)
+        if local_name_row is None:
+            name_mismatches.append({"tag_wp_id": tid, "issue": "tag no en tabla tags local"})
+        elif wp is None:
+            name_mismatches.append({
+                "tag_wp_id": tid,
+                "local_name": local_name_row["name"],
+                "issue": "wp_id no existe en WordPress",
+            })
+        elif wp["name"] != local_name_row["name"]:
+            name_mismatches.append({
+                "tag_wp_id": tid,
+                "local_name": local_name_row["name"],
+                "wp_name": wp["name"],
+            })
+
+    is_valid = not (in_wp_not_in_db or in_db_not_in_wp or name_mismatches)
+    parts = []
+    if in_wp_not_in_db:
+        parts.append(f"{len(in_wp_not_in_db)} tags en WP ausentes en DB local")
+    if in_db_not_in_wp:
+        parts.append(f"{len(in_db_not_in_wp)} tags en DB local ausentes en WP")
+    if name_mismatches:
+        parts.append(f"{len(name_mismatches)} name mismatches (posible stale tag)")
+    message = "OK" if is_valid else "Divergencia: " + "; ".join(parts)
+    return {
+        "is_valid": is_valid,
+        "in_wp_not_in_db": in_wp_not_in_db,
+        "in_db_not_in_wp": in_db_not_in_wp,
+        "name_mismatches": name_mismatches,
+        "message": message,
+    }
+
+
+def find_related(conn, wp_id, limit, validate=False, wp_config=None):
     tag_rows = conn.execute("""
         SELECT t.wp_id, t.name, t.slug, tg.slug as group_slug, tg.score_weight
         FROM post_tags pt
@@ -97,6 +203,13 @@ def find_related(conn, wp_id, limit):
     if not tag_rows:
         out({"ok": False, "error": f"El post wp_id={wp_id} no tiene tags en la base de datos local. Sincroniza los tags con db_init.py sync-tags-wp primero."})
         return
+
+    validation = None
+    if validate:
+        if not wp_config:
+            out({"ok": False, "error": "--validate requiere credenciales WP en .env"})
+            return
+        validation = _validate_post_tags(conn, wp_id, wp_config[0], wp_config[1])
 
     linked_to_ids = set()
     try:
@@ -168,7 +281,10 @@ def find_related(conn, wp_id, limit):
 
     tag_summary = [{"name": r["name"], "group_slug": r["group_slug"], "score_weight": r["score_weight"]} for r in tag_rows]
 
-    out({"ok": True, "related": results, "source_wp_id": wp_id, "source_tags": tag_summary, "count": len(results)})
+    payload = {"ok": True, "related": results, "source_wp_id": wp_id, "source_tags": tag_summary, "count": len(results)}
+    if validation is not None:
+        payload["validation"] = validation
+    out(payload)
 
 
 def cmd_find_related(args):
@@ -178,7 +294,10 @@ def cmd_find_related(args):
         if not source_exists:
             out({"ok": False, "error": f"El post wp_id={args.wp_id} no existe en la base de datos local. Sincroniza con db_init.py sync-posts-wp primero."})
             return
-        find_related(conn, args.wp_id, args.limit)
+        wp_config = None
+        if args.validate:
+            wp_config = get_wp_config()
+        find_related(conn, args.wp_id, args.limit, validate=args.validate, wp_config=wp_config)
     except Exception as e:
         out({"ok": False, "error": str(e)})
     finally:
@@ -241,6 +360,7 @@ def main():
     p_find = sub.add_parser("find-related", help="Busca posts relacionados usando tags de la base de datos local")
     p_find.add_argument("--wp-id", type=int, required=True, help="ID de WordPress del post fuente")
     p_find.add_argument("--limit", type=int, default=5)
+    p_find.add_argument("--validate", action="store_true", help="Valida contra WordPress que los post_tags locales del post fuente cuadran con la realidad. No bloquea la operacion, solo anade un bloque 'validation' al output.")
 
     p_needs = sub.add_parser("needs-links", help="Lista posts con menos de 2 outgoing links")
     p_needs.add_argument("--limit", type=int, default=20)

@@ -18,6 +18,8 @@ Subcomandos:
   db_query.py get-or-create-tag --name "Nombre exacto" --group <group_slug> [--wp-id N]
   db_query.py add-tag --name "..." --slug "..." --group <group_slug> --wp-id N
   db_query.py detect-stale-tags [--fix]          # Audita wp_ids locales vs WordPress
+  db_query.py audit-post-tags --wp-id N | --all  # Compara post_tags locales vs WordPress
+  db_query.py reconcile-post-tags --wp-id N | --all [--dry-run]  # Sincroniza post_tags con WP
 
   # Posts
   db_query.py get-post --wp-id N
@@ -403,6 +405,34 @@ def _wp_fetch_all_tags(wp_base_url, auth_header):
     return all_tags
 
 
+def _wp_fetch_post(wp_id, wp_base_url, auth_header):
+    """Obtiene un post de WordPress con sus tags. Devuelve dict con
+    id, title.rendered, slug, tags (lista de wp_ids)."""
+    url = f"{wp_base_url}/wp-json/wp/v2/posts/{wp_id}?_fields=id,title,slug,tags"
+    req = urllib.request.Request(url, headers={"Authorization": auth_header})
+    with urllib.request.urlopen(req, timeout=30) as response:
+        return json.loads(response.read().decode("utf-8"))
+
+
+def _wp_fetch_all_posts(wp_base_url, auth_header):
+    """Itera todos los posts publicados en WordPress. Devuelve lista de dicts
+    con id, title.rendered, slug, tags."""
+    all_posts = []
+    page = 1
+    while True:
+        url = f"{wp_base_url}/wp-json/wp/v2/posts?status=publish&fields=id,title,slug,tags&per_page=100&page={page}"
+        req = urllib.request.Request(url, headers={"Authorization": auth_header})
+        with urllib.request.urlopen(req, timeout=30) as response:
+            items = json.loads(response.read().decode("utf-8"))
+        if not items:
+            break
+        all_posts.extend(items)
+        if len(items) < 100:
+            break
+        page += 1
+    return all_posts
+
+
 def cmd_detect_stale_tags(args):
     """Detecta tags locales cuyo wp_id apunta, en WordPress, a un tag con
     nombre distinto (stale wp_id). Es el sintoma del scenario documentado en
@@ -472,6 +502,284 @@ def cmd_detect_stale_tags(args):
 
         out(result)
     except Exception as e:
+        out({"ok": False, "error": str(e)})
+    finally:
+        conn.close()
+
+
+def _audit_one_post(conn, wp_id, wp_post, local_tags_by_id, wp_tags_by_id):
+    """Compara los tags asignados a un post en WordPress vs los registrados
+    localmente en post_tags. Devuelve dict con todo el detalle.
+
+   wp_post: dict con fields id/title/slug/tags (lista de wp_ids en WP)
+    local_tags_by_id: {wp_id -> row tags local} (con name/slug/group)
+    wp_tags_by_id: {wp_id -> wp tag dict} (con name/slug normalizado)
+    """
+    wp_tag_ids = set(wp_post.get("tags") or [])
+    local_rows = conn.execute(
+        "SELECT tag_wp_id FROM post_tags WHERE post_wp_id = ?",
+        (wp_id,),
+    ).fetchall()
+    local_tag_ids = {r["tag_wp_id"] for r in local_rows}
+
+    in_wp_not_in_db = sorted(wp_tag_ids - local_tag_ids)
+    in_db_not_in_wp = sorted(local_tag_ids - wp_tag_ids)
+    common = sorted(wp_tag_ids & local_tag_ids)
+
+    name_mismatches = []
+    for tid in common:
+        local = local_tags_by_id.get(tid)
+        wp = wp_tags_by_id.get(tid)
+        if local is None:
+            name_mismatches.append({
+                "tag_wp_id": tid,
+                "issue": "tag_wp_id en post_tags no existe en tabla tags local",
+            })
+            continue
+        if wp is None:
+            name_mismatches.append({
+                "tag_wp_id": tid,
+                "local_name": local["name"],
+                "issue": "wp_id no existe en WordPress (¿tag borrado en WP?)",
+            })
+            continue
+        if wp["name"] != local["name"]:
+            name_mismatches.append({
+                "tag_wp_id": tid,
+                "local_name": local["name"],
+                "wp_name": wp["name"],
+                "wp_slug": wp["slug"],
+                "issue": f"wp_id {tid} en DB local es '{local['name']}' pero en WP es '{wp['name']}'",
+            })
+
+    def _enrich(tid_list):
+        out_list = []
+        for tid in tid_list:
+            local = local_tags_by_id.get(tid)
+            wp = wp_tags_by_id.get(tid)
+            out_list.append({
+                "tag_wp_id": tid,
+                "local_name": local["name"] if local else None,
+                "wp_name": wp["name"] if wp else None,
+                "wp_slug": wp["slug"] if wp else None,
+            })
+        return out_list
+
+    return {
+        "wp_id": wp_id,
+        "title": wp_post.get("title", {}).get("rendered", ""),
+        "slug": wp_post.get("slug", ""),
+        "wp_tag_count": len(wp_tag_ids),
+        "db_tag_count": len(local_tag_ids),
+        "in_wp_not_in_db": _enrich(in_wp_not_in_db),
+        "in_db_not_in_wp": _enrich(in_db_not_in_wp),
+        "name_mismatches": name_mismatches,
+        "issues_count": len(in_wp_not_in_db) + len(in_db_not_in_wp) + len(name_mismatches),
+    }
+
+
+def cmd_audit_post_tags(args):
+    """Audita post_tags comparando contra WordPress.
+
+    Uso:
+      db_query.py audit-post-tags --wp-id N
+      db_query.py audit-post-tags --all
+
+    Reporta por post:
+      - in_wp_not_in_db: tag IDs asignados en WP pero no en post_tags local
+      - in_db_not_in_wp: tag IDs en post_tags local pero no en WP
+      - name_mismatches: wp_id que existe en ambos pero el name no cuadra
+        (caso stale tags documentado en log 2026-05-11)
+    """
+    wp_base_url, auth_header = _wp_get_config()
+    if not wp_base_url:
+        out({"ok": False, "error": "No se pudieron leer las credenciales de WordPress (verifica .env: WP_BASE_URL, WP_USER, WP_APP_PASSWORD)."})
+        return
+
+    try:
+        wp_tags = _wp_fetch_all_tags(wp_base_url, auth_header)
+    except Exception as e:
+        out({"ok": False, "error": f"Error al consultar tags de WordPress: {e}"})
+        return
+    wp_tags_by_id = {t["id"]: t for t in wp_tags}
+
+    conn = get_conn()
+    try:
+        local_tags = conn.execute("SELECT wp_id, name, slug, group_id FROM tags").fetchall()
+        local_tags_by_id = {t["wp_id"]: dict(t) for t in local_tags}
+
+        target_posts = []
+        if args.all:
+            rows = conn.execute("SELECT wp_id, title, slug FROM posts ORDER BY wp_id").fetchall()
+            target_posts = [r["wp_id"] for r in rows]
+        elif args.wp_id is not None:
+            target_posts = [int(args.wp_id)]
+        else:
+            out({"ok": False, "error": "Se requiere --wp-id N o --all"})
+            return
+
+        if not target_posts:
+            out({"ok": True, "message": "No hay posts en la DB local para auditar", "audited": []})
+            return
+
+        audited = []
+        errors = []
+        for wp_id in target_posts:
+            try:
+                wp_post = _wp_fetch_post(wp_id, wp_base_url, auth_header)
+            except urllib.error.HTTPError as e:
+                errors.append({"wp_id": wp_id, "error": f"HTTP {e.code}: {e.read().decode('utf-8', errors='replace')[:200]}"})
+                continue
+            except Exception as e:
+                errors.append({"wp_id": wp_id, "error": str(e)})
+                continue
+            audited.append(_audit_one_post(conn, wp_id, wp_post, local_tags_by_id, wp_tags_by_id))
+
+        posts_with_issues = [a for a in audited if a["issues_count"] > 0]
+        result = {
+            "ok": True,
+            "audited_count": len(audited),
+            "posts_with_issues_count": len(posts_with_issues),
+            "audited": audited,
+            "errors": errors,
+        }
+        if errors:
+            result["errors_count"] = len(errors)
+        out(result)
+    except Exception as e:
+        out({"ok": False, "error": str(e)})
+    finally:
+        conn.close()
+
+
+def cmd_reconcile_post_tags(args):
+    """Reconcilia post_tags de un post contra WordPress.
+
+    Uso:
+      db_query.py reconcile-post-tags --wp-id N [--dry-run]
+      db_query.py reconcile-post-tags --all [--dry-run]
+
+    Por defecto (sin --dry-run) ejecuta:
+      1. DELETE FROM post_tags WHERE post_wp_id = N
+      2. INSERT de las relaciones reales segun WP (solo para tags que
+         existan en la tabla tags local; los que no existen se reportan
+         en `tags_not_in_local_db` sin fallar).
+
+    Con --dry-run solo reporta el plan sin tocar la DB.
+
+    NOTA: no crea tags nuevos en WP ni modifica la tabla tags. Solo
+    resincroniza post_tags para que cuadren con la realidad de WP.
+    Para arreglar tags stale/missing en la tabla tags, usar primero
+    `detect-stale-tags` y `sync-tags-wp` (con revisión manual).
+    """
+    wp_base_url, auth_header = _wp_get_config()
+    if not wp_base_url:
+        out({"ok": False, "error": "No se pudieron leer las credenciales de WordPress (verifica .env: WP_BASE_URL, WP_USER, WP_APP_PASSWORD)."})
+        return
+
+    try:
+        wp_tags = _wp_fetch_all_tags(wp_base_url, auth_header)
+    except Exception as e:
+        out({"ok": False, "error": f"Error al consultar tags de WordPress: {e}"})
+        return
+    wp_tags_by_id = {t["id"]: t for t in wp_tags}
+
+    conn = get_conn()
+    try:
+        if args.all:
+            rows = conn.execute("SELECT wp_id FROM posts ORDER BY wp_id").fetchall()
+            target_posts = [r["wp_id"] for r in rows]
+        elif args.wp_id is not None:
+            target_posts = [int(args.wp_id)]
+        else:
+            out({"ok": False, "error": "Se requiere --wp-id N o --all"})
+            return
+
+        if not target_posts:
+            out({"ok": True, "message": "No hay posts en la DB local para reconciliar", "reconciled": []})
+            return
+
+        plans = []
+        for wp_id in target_posts:
+            try:
+                wp_post = _wp_fetch_post(wp_id, wp_base_url, auth_header)
+            except urllib.error.HTTPError as e:
+                plans.append({"wp_id": wp_id, "ok": False, "error": f"HTTP {e.code}"})
+                continue
+            except Exception as e:
+                plans.append({"wp_id": wp_id, "ok": False, "error": str(e)})
+                continue
+
+            wp_tag_ids = wp_post.get("tags") or []
+            local_existing = {
+                r["wp_id"] for r in conn.execute("SELECT wp_id FROM tags").fetchall()
+            }
+            current_local = {
+                r["tag_wp_id"] for r in conn.execute(
+                    "SELECT tag_wp_id FROM post_tags WHERE post_wp_id = ?", (wp_id,)
+                ).fetchall()
+            }
+
+            to_insert = [tid for tid in wp_tag_ids if tid in local_existing and tid not in current_local]
+            to_delete = sorted(current_local - set(wp_tag_ids))
+            missing_in_local_db = sorted(set(wp_tag_ids) - local_existing)
+
+            if args.dry_run:
+                plans.append({
+                    "wp_id": wp_id,
+                    "ok": True,
+                    "dry_run": True,
+                    "would_delete_from_post_tags": to_delete,
+                    "would_insert_into_post_tags": to_insert,
+                    "tags_in_wp_not_in_local_db": missing_in_local_db,
+                    "wp_tag_count": len(wp_tag_ids),
+                    "current_db_tag_count": len(current_local),
+                })
+                continue
+
+            deleted = 0
+            inserted = 0
+            if to_delete:
+                cur = conn.execute(
+                    f"DELETE FROM post_tags WHERE post_wp_id = ? AND tag_wp_id IN ({','.join('?' * len(to_delete))})",
+                    (wp_id, *to_delete),
+                )
+                deleted = cur.rowcount or 0
+            for tid in to_insert:
+                try:
+                    conn.execute(
+                        "INSERT INTO post_tags (post_wp_id, tag_wp_id) VALUES (?, ?)",
+                        (wp_id, tid),
+                    )
+                    inserted += 1
+                except sqlite3.IntegrityError:
+                    pass
+            conn.commit()
+
+            plans.append({
+                "wp_id": wp_id,
+                "ok": True,
+                "deleted_from_post_tags": deleted,
+                "inserted_into_post_tags": inserted,
+                "tags_in_wp_not_in_local_db": missing_in_local_db,
+                "wp_tag_count": len(wp_tag_ids),
+                "final_db_tag_count": len(current_local) - deleted + inserted,
+            })
+
+        total_deleted = sum(p.get("deleted_from_post_tags", 0) if not p.get("dry_run") else 0 for p in plans)
+        total_inserted = sum(p.get("inserted_into_post_tags", 0) if not p.get("dry_run") else len(p.get("would_insert_into_post_tags", [])) for p in plans)
+        result = {
+            "ok": True,
+            "dry_run": bool(args.dry_run),
+            "reconciled_count": len(plans),
+            "plans": plans,
+        }
+        if not args.dry_run:
+            result["total_deleted"] = total_deleted
+            result["total_inserted"] = total_inserted
+        out(result)
+    except Exception as e:
+        conn.rollback()
         out({"ok": False, "error": str(e)})
     finally:
         conn.close()
@@ -848,6 +1156,15 @@ def main():
     p_detect_stale = sub.add_parser("detect-stale-tags", help="Detecta tags locales con wp_id desincronizado respecto a WordPress")
     p_detect_stale.add_argument("--fix", action="store_true", help="Ejecuta sync-tags-wp para corregir los tags stale detectados")
 
+    p_audit_pt = sub.add_parser("audit-post-tags", help="Audita post_tags comparando contra WordPress")
+    p_audit_pt.add_argument("--wp-id", type=int, default=None, help="Audita un post concreto")
+    p_audit_pt.add_argument("--all", action="store_true", help="Audita todos los posts de la DB local")
+
+    p_recon_pt = sub.add_parser("reconcile-post-tags", help="Reconcilia post_tags contra WordPress (DELETE + INSERT)")
+    p_recon_pt.add_argument("--wp-id", type=int, default=None, help="Reconcilia un post concreto")
+    p_recon_pt.add_argument("--all", action="store_true", help="Reconcilia todos los posts de la DB local")
+    p_recon_pt.add_argument("--dry-run", action="store_true", help="Solo reporta el plan, no toca la DB")
+
     # -- Posts --
     p_get_post = sub.add_parser("get-post", help="Obtiene un post por wp_id o slug")
     p_get_post.add_argument("--wp-id", type=int, default=None)
@@ -905,6 +1222,8 @@ def main():
         "add-tag": cmd_add_tag,
         "get-or-create-tag": cmd_get_or_create_tag,
         "detect-stale-tags": cmd_detect_stale_tags,
+        "audit-post-tags": cmd_audit_post_tags,
+        "reconcile-post-tags": cmd_reconcile_post_tags,
         "get-post": cmd_get_post,
         "add-post": cmd_add_post,
         "add-post-tags": cmd_add_post_tags,
