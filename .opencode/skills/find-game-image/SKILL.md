@@ -4,7 +4,7 @@ description: Busca imágenes para un videojuego usando SerpApi Google Images (fu
 compatibility: Requiere acceso a internet, keys de API (SERPAPI_KEY, RAWG_API_KEY) en .env. HF_TOKEN opcional para generación con IA.
 metadata:
   author: optimbyte
-  version: "3.0"
+  version: "4.0"
 allowed-tools: webfetch, bash
 ---
 
@@ -31,12 +31,53 @@ Localiza imágenes de un juego Devuelve un array de URLs públicas listas para p
 | `screenshot` | `{game} gameplay screenshot` | Endpoint `/games/{slug}/screenshots` | No |
 | `concepto` | `{game} concept art artwork` | `background_image_additional` | No |
 
+### Refuerzo screenshots (3 capas, no 2)
+
+Históricamente el flujo `screenshot` solo tenía 2 capas (SerpApi + RAWG screenshots endpoint), mientras que el flujo `portada` tenía 3 (SerpApi + RAWG + HuggingFace). Tras el fallo del log 2026-06-26 (Final Fantasy Tactics), se refuerza:
+
+- Para `image_type=screenshot`, **debe haber al menos 2 URLs de `media.rawg.io`** en el resultado final (que es la fuente más estable).
+- Si SerpApi solo aporta 1 screenshot válido y RAWG screenshots endpoint da <2, ejecutar búsqueda adicional en RAWG usando `background_image_additional` del juego como backup de screenshots.
+- Validar con `validate_image_urls.py` **antes** de decidir que se cumplió el `count` para screenshots.
+
 ---
 
 ## Herramienta a usar
 
 - Usa **webfetch** para las llamadas HTTP de los Pasos 1 y 2 (SerpApi y RAWG). Especifica siempre `format=markdown` en la llamada.
 - Usa **bash** para ejecutar el script `generate_image.py` del Paso 3 (Hugging Face, solo para portada).
+- Usa **bash** para ejecutar el script `validate_image_urls.py` (en el subdirectorio `scripts/`) **antes de devolver las URLs finales**. Es el filtro determinista que evita que `upload-wordpress-image` reciba URLs anti-hotlink, 404, Content-Type incorrecto, etc.
+
+---
+
+## Listas de dominios (deterministas)
+
+El script `validate_image_urls.py` (en `scripts/`) mantiene listas blancas y negras formales que reemplazan la heurística manual del LLM. Resumen:
+
+### Lista blanca preferente (no requiere validación exhaustiva)
+
+| Dominio | Razón |
+|---------|-------|
+| `media.rawg.io`, `api.rawg.io` | Fuentes oficiales RAWG — CDN estable, sin anti-hotlink |
+| `archive.org`, `web.archive.org`, `*.us.archive.org` | Internet Archive — público, sin restricciones |
+| `mobygames.com`, `www.mobygames.com`, `imagebin.mobygames.com` | Base de datos de juegos — imágenes estables |
+| `nintendo.com`, `playstation.com` | Publishers oficiales |
+| `cdn.cloudflare.steamstatic.com`, `steamcdn-a.akamaihd.net` | Steam CDN — público y rápido |
+| `gamefaqs.gamespot.com`, `gamespot.com` | GameFAQs — imágenes directas estables |
+| `static.wikia.nocookie.net`, `vignette.wikia.nocookie.net` | Fandom/Wikia — CDN dedicado a imágenes |
+
+### Lista negra (descartar sin intentar)
+
+| Dominio | Razón |
+|---------|-------|
+| `youtube.com`, `img.youtube.com`, `*.ytimg.com` | Thumbnails de vídeo — no son imágenes del juego |
+| `tiktok.com`, `www.tiktok.com` | Lo mismo |
+| `instagram.com`, `scontent*.cdninstagram.com` | Redes sociales con derechos/anti-hotlink |
+| `facebook.com`, `*.fbcdn.net` | Lo mismo |
+| `x.com`, `twitter.com`, `pbs.twimg.com` | Lo mismo |
+| `pinimg.com`, `pinterest.com` | Lo mismo |
+| **`fantasyanime.com`, `www.fantasyanime.com`** | Fansite con anti-hotlink conocido (log 2026-06-26 — `Fantasy Tactics screenshot 3` rompió en el Paso 5.5) |
+
+Cualquier dominio no listado se acepta **provisionalmente** con warning. El script reporta cuál fue la decisión para cada URL.
 
 ---
 
@@ -45,8 +86,39 @@ Localiza imágenes de un juego Devuelve un array de URLs públicas listas para p
 - **Formatos aceptados:** extensión de la URL debe ser `.jpg`, `.jpeg`, `.png` o `.webp`
 - **Tamaño mínimo:** `min(original_width, original_height) >= 600`
 - **Peso:** verificar `filesize` solo si el campo está presente. Si no está disponible, ignorar este criterio
+- **Magic bytes:** el script `validate_image_urls.py` hace GET con `Range: bytes=0-2047` e inspecciona los primeros bytes (`\xff\xd8\xff` JPG, `\x89PNG` PNG, `RIFF...WEBP` WEBP). Descartar URLs cuyo Content-Type diga `image/*` pero los magic bytes no concuerden.
 - Descartar y pasar al siguiente si no cumple formato o tamaño
 - Para `count > 1`: devolver hasta `count` imágenes que cumplan los criterios, iterando sobre los resultados disponibles
+
+---
+
+## Paso 0 — Validación final de URLs (antes de devolver el array)
+
+Antes de devolver el resultado al agente, ejecutar una pasada de validación con el script `scripts/validate_image_urls.py`:
+
+```bash
+python3 .opencode/skills/find-game-image/scripts/validate_image_urls.py \
+  --urls "URL1,URL2,URL3" \
+  --referer "https://www.google.com/"
+```
+
+El script devuelve JSON con:
+- `valid_urls`: array de URLs que pasaron todos los checks (HEAD 200, magic bytes correctos, no anti-hotlink, dominio no blacklist)
+- `results`: detalle por URL con `http_status`, `content_type`, `content_length`, `magic_bytes`, `format`, `validated_at`, warnings
+
+**Filtrar el array final de URLs**: usar solo las que aparecen en `valid_urls`. Si tras la validación quedan menos URLs que `count`, ir al Paso 4 (sin imagen disponible parcial).
+
+### Anti-hotlink check
+
+El script hace un segundoGET sin `Referer` y compara `Content-Length` y `status code` con el primer GET:
+- Si sin Referer devuelve 401/403 y con Referer 200 → anti-hotlink confirmado → descartar
+- Si `Content-Length` difiere >30% → sospechoso → descartar
+
+### Edge cases a tener en cuenta tras la validación
+
+- Algunos servidores no soportan `Range` (devuelven HTTP 416). El script reintenta con GET completo en ese caso.
+- En servidores con anti-hotlink agresivos, HEAD puede pasar (200) pero GET Range puede devolver 403. El script reporta ambos casos en `warnings`.
+- Si el script devuelve `valid_count=0` pero hay URLs críticas, **no** sobreescribir a mano. volver a buscar en Paso 1/2 o ir a Paso 3 (HF).
 
 ---
 

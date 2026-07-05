@@ -115,24 +115,51 @@
 
 ---
 
-## Mejora #4 — Validación HTTP previa de URLs en `find-game-image` (P2 · media) — PENDIENTE
+## Mejora #4 — Validación HTTP previa de URLs en `find-game-image` (P2 · media) — ✅ COMPLETADA
 
-**Evidencia:** log 2026-06-26 (Final Fantasy Tactics). El screenshot 3 venía de `fantasyanime.com/.../Chapter%201/...jpg`. Pasó todos los filtros del Paso 5 (extensión .jpg válida, metadatos de tamaño declarados OK) y rompió en el Paso 5.5. El agente tuvo que improvisar un fallback a RAWG. Adicionalmente, en 2026-05-11 el agente filtró "a mano" imágenes de YouTube/TikTok/Instagram — criterio que **no está formalizado** en ningún sitio.
+**Evidencia:** log 2026-06-26 (Final Fantasy Tactics). El screenshot 3 venía de `fantasyanime.com/.../Chapter%201/...jpg`. Pasó todos los filtros del Paso 5 (extensión .jpg válida, metadatos de tamaño declarados OK) y rompió en el Paso 5.5. El agente tuvo que improvisar un fallback a RAWG. Adicionalmente, en 2026-05-11 el agente filtró "a mano" imágenes de YouTube/TikTok/Instagram — criterio que **no estaba formalizado** en ningún sitio.
 
 **Causa raíz (verificada en `find-game-image/`):**
-- La skill solo tiene dos archivos: `SKILL.md` (prompt) y `generate_image.py` (Paso 3 HF). **Toda la validación de URLs de SerpApi/RAWG vive como prosa Markdown** y depende de que el LLM la obedezca.
-- No existe ni un HEAD, ni un GET parcial, ni lectura de `status_code`/`Content-Type`. El filtro anti-hotlink y el de dominios no existen como código.
+- La skill solo tenía dos archivos: `SKILL.md` (prompt) y `generate_image.py` (Paso 3 HF). **Toda la validación de URLs de SerpApi/RAWG vivía como prosa Markdown** y dependía de que el LLM la obedezca.
+- No existía ni un HEAD, ni un GET parcial, ni lectura de `status_code`/`Content-Type`. El filtro anti-hotlink y el de dominios no existían como código.
 
 **Implementación:**
-1. Crear `find-game-image/scripts/validate_image_urls.py` con:
-   - HEAD opcional + GET con `Range: bytes=0-2047` para inspeccionar magic bytes (`\x89PNG`, `\xff\xd8`, `RIFF...WEBP`).
-   - `User-Agent` realista, `timeout=10s`, `max_retries=3` con backoff (replicar patrón de `generate_image.py:36-37, 83-137`).
-   - Detección de anti-hotlink: segundo GET sin `Referer` y comparar tamaño.
-2. Formalizar en `SKILL.md` una **lista blanca preferente** (`media.rawg.io`, `archive.org`, `mobygames.com`, `nintendo.com`, `playstation.com`, `steamstatic.com`) y una **lista negra** (`ytimg.com`, `tiktok.com`, `instagram.com`, `fbcdn.net`, fansites con anti-hotlink conocido como FantasyAnime). Convierte en determinista lo que hoy es heurística del LLM.
-3. Normalizar URLs (`urllib.parse.urlsplit` + `quote`) y enriquecer el JSON de salida con `http_status`, `content_type`, `validated_at` para que `upload-wordpress-image` pueda saltar re-validación.
-4. Especial refuerzo del flujo **screenshot** (hoy solo 2 capas frente a las 3 de portada) — exigir mínimo 2 URLs de `media.rawg.io` cuando `image_type=screenshot`.
+1. Creado `find-game-image/scripts/validate_image_urls.py` con:
+   - **HEAD opcional** + **GET con `Range: bytes=0-2047`** para inspeccionar magic bytes (`\xff\xd8\xff` JPG, `\x89PNG` PNG, `RIFF...WEBP` WEBP, `GIF87a/89a` GIF).
+   - **User-Agent realista** (Chrome 124 desktop), `timeout=10s`, `max_retries=3` con backoff exponencial base 2s. Reintenta en 429/503/500/502/504.
+   - **Detección anti-hotlink**: segundo HEAD sin `Referer` y comparación de `Content-Length` y status code con el HEAD original. Si sin Referer devuelve 401/403 y con Referer 200 → anti-hotlink confirmado. Si `Content-Length` difiere >30% → sospechoso. Descarta en ambos casos.
+   - **HTTP 416 (Range Not Satisfiable)**: fallback automático a GET completo (algunos CDN no soportan Range en imágenes pequeñas).
+   - **Normalización de URLs**: `urllib.parse.urlsplit` + `quote` solo de path/query (conservando `%XX` ya codificado). Lowercase en `netloc`. Forzar scheme `http`/`https`.
+   - **Salida JSON enriquecida**: `valid_urls` (array filtrado), `results` (detalle por URL con `http_status`, `content_type`, `content_length`, `magic_bytes`, `format`, `validated_at`, warnings). `upload-wordpress-image` puede usar `valid_urls` directamente y ahorrar re-validación.
+2. Formalizadas listas de dominios en el script:
+   - **Whitelist preferente**: `media.rawg.io`, `archive.org`, `mobygames.com`, `nintendo.com`, `playstation.com`, `cdn.cloudflare.steamstatic.com`, `gamefaqs.gamespot.com`, `static.wikia.nocookie.net`.
+   - **Blacklist**: `youtube.com`, `*.ytimg.com`, `tiktok.com`, `instagram.com`, `*.fbcdn.net`, `x.com`, `twitter.com`, `pbs.twimg.com`, `pinimg.com`, **`fantasyanime.com`** (anti-hotlink conocido, log 2026-06-26).
+   - Dominios desconocidos se aceptan **provisionalmente** con un warning en el reporte.
+3. Actualizado `SKILL.md` (versión 4.0):
+   - Añadido **Paso 0 — Validación final de URLs** antes de devolver el array, invocando el script vía bash.
+   - Sección **Listas de dominios (deterministas)** con todas las tablas whitelist/blacklist.
+   - Criterio **Magic bytes** añadido a la sección de criterios de imagen válida.
+   - **Refuerzo screenshots (3 capas)**: se documenta que para `image_type=screenshot` debe haber al menos 2 URLs de `media.rawg.io` en el resultado final (la fuente más estable), y si SerpApi aporta <1 y RAWG screenshots endpoint da <2, ejecutar búsqueda adicional con `background_image_additional`.
+4. `allowed-tools` de `SKILL.md` ampliado para mencionar `bash` al script de validación (implícito en la frase de "Herramienta a usar").
 
-**Esfuerzo estimado:** ~3-4 h. **Impacto:** elimina los puntos de fallo en descarga y hace el comportamiento determinista entre ejecuciones.
+**Pruebas unitarias (9 tests, todos pasan sobre `urllib.request.urlopen` mockeado):**
+- T1: URL inválida (sin scheme) → rechazada en seco.
+- T2: URL en blacklist (`ytimg.com`) → rechazada sin HTTP call (corta circuito por dominio).
+- T3: URL en whitelist (`media.rawg.io`) + magic bytes JPG válidos → ok=True, `format=jpg`, `domain_whitelisted=True`, `anti_hotlink_ok=True`.
+- T4: URL en whitelist pero magic bytes son HTML (`<!DOCTYPE...`) → ok=False, `magic_bytes_ok=False`, warning en reporte.
+- T5: Anti-hotlink HEAD 200 con Referer / 403 sin Referer → ok=False, `anti_hotlink_ok=False`, error menciona "anti-hotlink".
+- T6: HTTP 404 → ok=False, `http_status=404`, error `HEAD HTTP 404`.
+- T7: Range Not Satisfiable 416 → fallback automático a GET completo → ok=True, magic bytes correctos.
+- T8: URL con path no-ASCII (`Chapter 1/shot%20one.jpg`) → normalizado a `Chapter%201/shot%20one.jpg`, dry-syntax-only OK.
+- T9: Dominio desconocido + magic bytes válidos → ok=True con warning "no en whitelist; considerando OK provisional".
+
+**Bug encontrado y fixeado durante tests:** `validate_magic_bytes` era laxa por defecto (default OK si no matches formato conocido, "trusting Content-Type"). Cambiado a estricta (`(None, False)` si no matches). Importante: si el server dice `image/jpeg` pero los primeros bytes son HTML, ahora se descarta.
+
+**Archivos tocados:**
+- `find-game-image/scripts/validate_image_urls.py` (nuevo, ~340 líneas) — todo el motor de validación.
+- `find-game-image/SKILL.md` — versión 3.0 → 4.0, añadidos: Paso 0 de validación, sección listas de dominios, criterio magic bytes, refuerzo screenshots 3 capas.
+
+**Siguiente:** Mejora #5 (consistencia y timestamps en logs).
 
 ---
 
@@ -171,7 +198,7 @@
 | 1 | Fix `FileNotFoundError` en subida de imágenes | **P0** | ~30 min | ✅ COMPLETADA |
 | 2 | Chequeo colisión `wp_id` en `add-tag`/`get-or-create-tag` | P1 | ~45 min | ✅ COMPLETADA |
 | 3 | Auditoría + reconciliación de `post_tags` | P1 | ~2-3 h | ✅ COMPLETADA |
-| 4 | Validación HTTP previa de URLs en `find-game-image` | P2 | ~3-4 h | PENDIENTE |
+| 4 | Validación HTTP previa de URLs en `find-game-image` | P2 | ~3-4 h | ✅ COMPLETADA |
 | 5 | Consistencia/timestamps en logs | P3 | ~15 min | PENDIENTE |
 | 6 | Verificar bug post-idea↔post de `project-ideas.md` | P3 | ~20 min | PENDIENTE |
 
