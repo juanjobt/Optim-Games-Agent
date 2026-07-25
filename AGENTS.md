@@ -2,6 +2,14 @@
 
 Agente de IA para crear y publicar contenido sobre videojuegos retro en optimpixel.com.
 
+## Requisito de entorno
+
+> **El agente debe ejecutarse exclusivamente en Linux/WSL.**
+
+**Reglas:**
+
+- Ante detectar PowerShell o cmd de Windows (indicador de shell `win32` o output con acentos corruptos tipo `acci�n`), **detenerse** y pedir al usuario que ejecute en WSL.
+
 ## Descripción del proyecto
 
 Proyecto basado en OpenCode — sin sistema de build ni tests. El agente genera posts sobre videojuegos clásicos y los publica en WordPress via MCP.
