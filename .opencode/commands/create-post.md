@@ -307,6 +307,28 @@ La skill se encarga de:
 
 ---
 
+## Paso 7.1 — Verificación obligatoria de contenido
+
+**OBLIGATORIO** — Justo tras recibir el `post_id` de la skill `publish-wordpress`, verificar que el contenido se almacenó realmente en WordPress. Este check detecta el bug documentado en `docs/plans/windows-execution-restriction.md` (posts con `post_content` de 0 bytes por ejecución bajo Windows PowerShell).
+
+```bash
+python3 .opencode/skills/publish-wordpress/scripts/verify_post_content.py --post-id POST_ID --env .env
+```
+
+Exit code 0 y `content_len > 0` → continuar al Paso 7.5.
+
+**Si la verificación falla (`content_len = 0` o error):**
+
+1. Marcar el paso como **error** en el log de ejecución.
+2. **No continuar** con el Paso 7.5 (schema) ni el Paso 8 (memoria) — el post no debe quedar registrado como publicado.
+3. Si la idea venía de la cola, revertir su estado:
+   ```bash
+   python3 memory/scripts/db_query.py update-idea-state --id IDEA_ID --state pendiente
+   ```
+4. Informar al usuario: el post existe en WordPress pero quedó vacío; la reinyección debe hacerse desde Linux/WSL.
+
+---
+
 ## Paso 7.5 — Inyectar schema VideoGame
 
 **Solo para posts de tipo Review o Historia sobre un juego concreto. Omitir para Listas y rankings.**

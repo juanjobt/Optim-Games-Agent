@@ -100,7 +100,7 @@ Esto detectaría el bug incluso si se escapara el bloqueo de OS, evitando dejar 
 
 ## 7. Pendientes (trabajo futuro desde WSL/Linux)
 
-- [ ] **Reinyectar contenido del post 1037** (Terranigma): reconstruir el HTML (disponible en el log de ejecución `memory/execution-logs/2026-07-24.md` y en el historial de la sesión) y hacer `wp_update_post` con el `content` completo desde WSL. Re-aplicar Paso 7.5 (schema ya inyectado, no necesario) y verificar `content_len > 0`.
-- [ ] **Reinyectar contenido del post 1030** (Historia Super Mario RPG): recuperar el contenido de su log de ejecución correspondiente en `memory/execution-logs/` y re-publicar vía `wp_update_post` desde WSL.
-- [ ] Implementar el **checklist de mitigación** del apartado 6 en la skill `publish-wordpress` y en el comando `/create-post`.
-- [ ] Añadir la nota de bloqueo OS en `AGENTS.md` y en `.opencode/agents/content-marketer.md`.
+- [x] **Reinyectar contenido del post 1037** (Terranigma): ✅ 2026-07-25. Contenido regenerado desde WSL (1113 palabras) e inyectado vía REST API. Verificado `content_len = 7665`. Imágenes de contenido reincrustadas (los media 1034-1036 seguían en la biblioteca). Schema y featured image no afectados. Log: `memory/execution-logs/2026-07-25.md`.
+- [x] **Reinyectar contenido del post 1030** (Historia Super Mario RPG): ✅ 2026-07-25. Contenido regenerado (890 palabras) e inyectado vía REST API. Verificado `content_len = 5812`. Además se corrigieron título y excerpt, que tenían acentos corruptos ("presto" → "prestó", "nacio" → "nació"...).
+- [x] Implementar el **checklist de mitigación** del apartado 6: ✅ 2026-07-25. Script `verify_post_content.py` creado en `.opencode/skills/publish-wordpress/scripts/`. Integrado como **Paso 3.5** en la skill `publish-wordpress` (bloquea imagen/DB/reporte si falla) y como **Paso 7.1** en el comando `/create-post` (revierte la idea a `pendiente` y detiene el flujo si `content_len = 0`).
+- [x] Añadir la nota de bloqueo OS: ✅ `AGENTS.md` ya incluía la sección "Requisito de entorno"; añadida nota al inicio de `.opencode/agents/content-marketer.md` (2026-07-25).

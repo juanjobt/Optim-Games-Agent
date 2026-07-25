@@ -307,6 +307,24 @@ Anotar el `post_id` devuelto y la `URL` pública del post.
 
 ---
 
+## Paso 3.5 — Verificación obligatoria de contenido
+
+**OBLIGATORIO** — Tras crear el post, verificar que el `post_content` se ha almacenado realmente en WordPress. Este check detecta el bug documentado en `docs/plans/windows-execution-restriction.md` (posts creados con `content` de 0 bytes por envío HTTP corrupto).
+
+```bash
+python3 .opencode/skills/publish-wordpress/scripts/verify_post_content.py --post-id POST_ID --env .env
+```
+
+El script consulta `GET /wp-json/wp/v2/posts/{id}?context=edit` y comprueba que `content.raw` tiene longitud > 0. Devuelve JSON con `content_len` y exit code 0 (OK) o 1 (fallo).
+
+- **Si `content_len > 0`** → continuar con el Paso 4 normalmente.
+- **Si `content_len = 0` o el script falla** → el paso se marca como **error**:
+  1. **No continuar** con el Paso 4 (imagen), Paso 5 (registro en DB local) ni el reporte como publicación exitosa.
+  2. Informar al usuario: el post existe en WordPress pero está vacío; probable corrupción del cuerpo en el envío (¿se ejecutó en Windows PowerShell?).
+  3. Indicar que la reinyección de contenido debe hacerse desde Linux/WSL con `wp_update_post` o la REST API.
+
+---
+
 ## Paso 4 — Subir y asignar imagen de portada
 
 **Si `image_url` no es null:**
@@ -356,6 +374,7 @@ Este paso es **obligatorio** — sin él, el post no tendrá tags en la DB local
 📂 Categoría asignada
 🏷️ Tags: [lista] (X desde DB local + Y nuevos creados y registrados)
 ✅ Validación de tags: completada vs memory/blog.db
+✅ Verificación de contenido: content_len = X bytes (Paso 3.5)
 🖼️ Imagen de portada: asignada correctamente / ⚠️ pendiente (sin URL)
 🖼️ Imágenes de contenido: X screenshots + Y conceptos / ⚠️ pendientes
 📝 Post registrado en DB local: sí (wp_id=X, tags=Y)
@@ -369,6 +388,8 @@ Si la imagen de portada quedó pendiente, indica en el reporte que el usuario pu
 ---
 
 ## Manejo de errores comunes
+
+**Post creado con `post_content` vacío (content_len = 0 en Paso 3.5)** — El cuerpo de la petición se corrompió en el envío (documentado al ejecutar bajo Windows PowerShell; ver `docs/plans/windows-execution-restriction.md`). No registrar el post en la DB local como publicado. Reinyectar el contenido desde Linux/WSL con `wp_update_post` o la REST API y volver a verificar.
 
 **Categoría no encontrada** — Usar `wp_add_category` antes de asignar.
 
