@@ -255,7 +255,8 @@ def find_related(conn, wp_id, limit, validate=False, wp_config=None):
     candidate_ids = list(scores.keys())
     placeholders = ",".join("?" * len(candidate_ids))
     posts_rows = conn.execute(
-        f"SELECT wp_id, title, slug, category_slug, published_at FROM posts WHERE wp_id IN ({placeholders})",
+        f"SELECT wp_id, title, slug, category_slug, published_at FROM posts "
+        f"WHERE status = 'publish' AND wp_id IN ({placeholders})",
         candidate_ids,
     ).fetchall()
     posts_by_id = {row["wp_id"]: row for row in posts_rows}
@@ -312,6 +313,7 @@ def cmd_needs_links(args):
                    COUNT(il.id) as outgoing_count
             FROM posts p
             LEFT JOIN internal_links il ON p.wp_id = il.from_wp_id
+            WHERE p.status = 'publish'
             GROUP BY p.wp_id
             HAVING outgoing_count < 2
             ORDER BY p.published_at ASC

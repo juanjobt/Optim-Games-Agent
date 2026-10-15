@@ -27,6 +27,18 @@ WP_APP_PASSWORD=xxxx xxxx xxxx xxxx xxxx xxxx
 > **Nota sobre autenticación dual:** El agente usa dos sistemas de autenticación:
 > - Para las operaciones MCP (crear posts, categorías, tags) se utilizará auth por jwt
 > - `WP_USER` + `WP_APP_PASSWORD` para conectar directamente con la api de wordpress cuando se usen scripts de Python
+>
+> **El JWT del MCP caduca** (~30 días desde su emisión; ver el campo `exp` del token en `opencode.json`). Si caduca, los tools `wp_*` dejan de cargarse. El flujo `/create-post` lo detecta en el **Paso 0.5 (preflight)** y continúa en **modo REST** con los scripts `wp_*.py` de `publish-wordpress/scripts/`. Para renovarlo: **WP → Ajustes → WordPress MCP → Authentication Tokens** y actualizar el header `Authorization` de `mcp.wordpress-mcp-remote` en `opencode.json`.
+
+### Comprobar el entorno (preflight)
+
+Antes de crear un post, o cuando algo falle, ejecutar:
+
+```bash
+python3 .opencode/skills/publish-wordpress/scripts/preflight_check.py --env .env
+```
+
+Devuelve JSON con el estado de `.env`, del JWT MCP y de la conexión REST a WordPress, y recomienda el modo de publicación (`"mcp"` o `"rest"`).
 
 ---
 
@@ -117,3 +129,12 @@ Las categorías `reviews`, `historias` y `listas` deben existir en WordPress. Si
 
 **El agente no sigue la voz del blog**
 Revisa `blog-identity.md` — es la biblia editorial del blog. Si el tono no encaja, es el primer sitio donde mirar.
+
+**Los tools MCP `wp_*` no aparecen / no se puede crear posts**
+Lo más probable es que el **JWT del MCP haya caducado**. Ejecuta el preflight:
+```bash
+python3 .opencode/skills/publish-wordpress/scripts/preflight_check.py --env .env
+```
+- Si `jwt.valid = false` → renovar el token (WP → Ajustes → WordPress MCP → Authentication Tokens) y actualizar `opencode.json`. Mientras tanto, el flujo funciona en **modo REST** (fallback).
+- Si `wp_rest.ok = false` → revisar `WP_USER` / `WP_APP_PASSWORD` en `.env`.
+- Si `recommended_mode = "rest"`, `/create-post` usará automáticamente los scripts REST.

@@ -10,13 +10,13 @@ allowed-tools: wp_get_post wp_update_post
 
 # Skill: Set Videogame Schema
 
-Esta skill es **no bloqueante**: si falla, reporta el error pero no interrumpe el flujo de `create-post`.
+En el flujo `/create-post`, el schema se configura sobre el borrador antes de publicarlo. Si falla, reporta el error y deja el post como borrador; no se debe cambiar a `publish` hasta resolverlo.
 
 ---
 
 ## Cuándo usar esta skill
 
-Invocar desde el **Paso 7.5 de `create-post`**, justo después de confirmar que el post se ha publicado correctamente y antes del reporte final. Solo aplica a posts de tipo **Review** e **Historia** sobre un juego concreto. Para Listas y rankings, omitir esta skill.
+Invocar desde el **Paso 7.5 de `create-post`**, una vez creado y verificado el borrador, antes de su publicación pública. Solo aplica a posts de tipo **Review** e **Historia** sobre un juego concreto. Para Listas y rankings, omitir esta skill.
 
 ---
 
@@ -43,7 +43,7 @@ Recopilar del Paso 4.5 (`game_data`) y del Paso 7 de `create-post`:
 
 | Input | Fuente | Descripción |
 |-------|--------|-------------|
-| `post_id` | Paso 7: respuesta de WordPress al publicar | ID numérico del post recién creado |
+| `post_id` | Paso 7: respuesta de WordPress al crear el borrador | ID numérico del post recién creado |
 | `name` | Paso 4.5: `game_data.name` | Nombre oficial del juego |
 | `description` | Paso 4: `excerpt` | Excerpt del post (máx. 160 caracteres) |
 | `system` | Paso 4.5: `game_data.system` | Sistemas separados por coma. Ej: `"PlayStation, PC, Sega Saturn"` |
@@ -51,7 +51,7 @@ Recopilar del Paso 4.5 (`game_data`) y del Paso 7 de `create-post`:
 | `author_name` | Paso 4.5: `game_data.developer` | Desarrolladora. Ej: `"Capcom"` |
 | `publisher` | Paso 4.5: `game_data.publisher` | Distribuidora (usar `game_data.developer` si coincide) |
 | `image` | Paso 7: URL de la imagen subida | URL completa de la imagen de portada en WP |
-| `url` | Paso 7: respuesta de WordPress | URL pública del post |
+| `url` | Slug y dominio del sitio | URL canónica prevista del post, por ejemplo `https://optimpixel.com/slug-del-post/` |
 | `rating` | Solo Reviews | Puntuación numérica si el post es una Review. Dejar vacío si no aplica |
 
 > **Nota:** El `schema_id` se obtiene automáticamente del .env (`WP_VIDEOGAME_SCHEMA_ID`). **No es necesario pasarlo como argumento**.
@@ -128,7 +128,7 @@ Añadir esta línea al reporte final de `create-post`:
 🗂 Schema VideoGame: ✓ configurado (schema_id: {schema_id})
 ```
 
-**Si falló o se omitió:**
+**Si falló:**
 ```
-🗂 Schema VideoGame: ⚠ pendiente — {motivo breve}
+🗂 Schema VideoGame: ❌ error — el post permanece como borrador; {motivo breve}
 ```

@@ -27,7 +27,7 @@ Antes de hacer ninguna pregunta, evalúa si ya se ha proporcionado un juego o te
    ```bash
    python3 memory/scripts/db_query.py update-idea-state --id IDEA_ID --state en_uso
    ```
-3. Guardar el `id` de la idea para usarlo en los Pasos 6 y 8 (reversión o confirmación).
+3. Guardar el `id` de la idea para mantenerla en `en_uso` mientras el post sea borrador y marcarla `publicado` tras superar el Paso 7.8.
 4. Informar brevemente antes de continuar:
    ```
    📋 Usando idea de la cola:
@@ -56,6 +56,28 @@ La idea devuelta por `get-pending-ideas` contiene campos estructurados listos pa
 | `post_wp_id` | ID del post en WP (null si no publicado) | null |
 
 **No hace falta parsear ningún campo monolítico** — los datos ya están descompuestos listos para usar.
+
+---
+
+## Paso 0.5 — Preflight de entorno (obligatorio)
+
+Antes de escribir o publicar nada, verifica que el entorno está listo y decide el **modo de publicación**:
+
+1. ¿Están disponibles en la sesión los tools MCP `wp_add_post` / `wp_update_post` / `wp_get_post`?
+2. Ejecuta el preflight para comprobar `.env`, JWT de MCP y conectividad WordPress:
+
+```bash
+python3 .opencode/skills/publish-wordpress/scripts/preflight_check.py --env .env
+```
+
+El JSON devuelve `recommended_mode`:
+
+- **`"mcp"`** (JWT válido y tools presentes) → camino principal: usar las herramientas MCP `wp_*`.
+- **`"rest"`** (tools ausentes o JWT caducado) → **fallback REST**: usar los scripts `wp_resolve_terms.py`, `wp_create_post.py`, `wp_update_post.py`, `wp_get_post.py` de `.opencode/skills/publish-wordpress/scripts/`.
+
+**Si `recommended_mode` es `null`** (WP REST no responde o faltan credenciales): **detente**. No continúes; informa del error del preflight y pide revisar `.env`/WordPress.
+
+Si el preflight detecta el JWT MCP caducado, avísalo y continúa en modo REST (no es bloqueante). Registra el modo elegido en el log de ejecución.
 
 ---
 
@@ -109,6 +131,8 @@ Según el tipo de post, carga la skill correspondiente y sigue su estructura:
 
 Escribe el post completo en HTML limpio siguiendo la estructura de la skill y la voz del blog definida en `blog-identity`.
 
+No insertes enlaces internos en esta fase; la skill `link-related-posts` los selecciona, inserta y verifica en el Paso 7.2 para evitar duplicados y asegurar que apuntan a posts publicados.
+
 ---
 
 ## Paso 4 — Preparar datos de publicación
@@ -118,6 +142,8 @@ Genera estos campos que se usarán al publicar en WordPress:
 - **Título** — Atractivo, con la keyword principal incluida de forma natural
 - **Slug** — Minúsculas, con guiones, sin artículos innecesarios (ej: `review-chrono-trigger-snes`)
 - **Excerpt** — 150-160 caracteres, será el snippet en resultados de búsqueda. Incluye la keyword principal de forma natural
+
+Antes de continuar, cuenta los caracteres del excerpt: debe tener entre 150 y 160, ambos inclusive. Si no cumple, reescríbelo y vuelve a contar; no publiques con una descripción fuera de rango.
 
 **Nota sobre SEO:** La keyword principal se usa como guía interna para redactar un buen título y excerpt, pero no se almacena como campo separado en WordPress. El título del post funciona como título SEO.
 
@@ -188,9 +214,9 @@ find-game-image(game_name: "Juego destacado #2", image_type: "screenshot", count
 ...
 ```
 
-Los "juegos destacados" son los 3-5 más relevantes de la lista, elegidos por el agente.
+Los “juegos destacados” son los 3-5 más relevantes de la lista, elegidos por el agente.
 
-Guardar todas las URLs de contenido para el Paso 5.5. Si alguna búsqueda devuelve menos imágenes de las esperadas, continuar con las que haya.
+Guardar todas las URLs de contenido para el Paso 5.5. Si alguna búsqueda devuelve menos imágenes de las esperadas, continúa preparando el borrador, pero anota qué imágenes faltan: no se podrá publicar hasta completar los mínimos editoriales indicados en el Paso 7.8.
 
 ---
 
@@ -241,40 +267,17 @@ El agente decide la posición exacta de cada imagen en el texto, siguiendo las i
 - Nunca insertar imágenes en el primer párrafo (el gancho)
 - Máximo 1 imagen de contenido por párrafo/sección
 - Insertar solo las imágenes que encajen editorialmente — no forzar
-- Si no se encontró ninguna imagen de contenido, publicar sin ellas y anotarlo
+- Si faltan imágenes de contenido, el borrador puede prepararse, pero no se publicará hasta completar los mínimos del Paso 7.8
 
 ---
 
-## Paso 6 — Revisión antes de publicar
+## Paso 6 — Preparar el borrador
 
-Muestra al usuario este resumen y espera confirmación:
-
-```
-📝 RESUMEN DEL POST
-──────────────────────────────────────
-Título: [título]
-Tipo: [tipo de post]
-Categoría: [categoría: Reviews / Historias / Listas]
-Slug: /[slug]
-Excerpt: [excerpt]
-Datos del juego: [sistema], [género], [desarrolladora], [época]
-Imagen de portada: [fuente y nombre] o ⚠️ Sin imagen
-Imágenes de contenido: X screenshots + Y conceptos o ⚠️ Sin imágenes de contenido
-Palabras: ~[número]
-──────────────────────────────────────
-¿Publicamos? (sí / revisar / cancelar)
-```
-
-- **revisar** → pregunta qué cambiar y vuelve al paso correspondiente
-- **cancelar** → detén el proceso; si la idea venía de la memoria, revierte su estado:
-  ```bash
-  python3 memory/scripts/db_query.py update-idea-state --id IDEA_ID --state pendiente
-  ```
-- **sí** → continúa al Paso 7
+Continúa el flujo creando un borrador privado en WordPress. Todavía no se ha autorizado su publicación pública: la confirmación se solicita una sola vez, en el Paso 7.8, después de aplicar enlaces y completar las verificaciones.
 
 ---
 
-## Paso 7 — Publicar en WordPress
+## Paso 7 — Crear borrador en WordPress
 
 Invocar la skill `publish-wordpress` con los siguientes inputs:
 
@@ -285,7 +288,7 @@ Invocar la skill `publish-wordpress` con los siguientes inputs:
 - `excerpt` — Extracto del post (del Paso 4)
 - `type` — Tipo de post: `"review"` | `"historia"` | `"lista"` (del Paso 4.5)
 - `game_data` — Objeto con datos del juego (del Paso 4.5)
-- `status` — `"publish"`
+- `status` — `"draft"` (obligatorio en este flujo; la publicación pública se hace en el Paso 7.8, tras confirmación del usuario)
 
 **Inputs opcionales:**
 - `image_url` — URL de la imagen de portada (del Paso 5.1), o `null`
@@ -305,6 +308,29 @@ La skill se encarga de:
 5. Subir y asignar la imagen de portada (si hay URL)
 6. Registrar el post y sus tags en la base de datos local (`add-post`, `add-post-tags`)
 
+**Si el preflight indicó modo REST** (tools MCP ausentes), el equivalente es:
+
+```bash
+# 1) Categoría (type → id)
+python3 .opencode/skills/publish-wordpress/scripts/wp_resolve_terms.py category --type review
+# 2) Tags (grupo=nombre, repetible) → resuelve/crea en WP, registra en DB y asigna tag_group
+python3 .opencode/skills/publish-wordpress/scripts/wp_resolve_terms.py tags \
+  --term "sistema=PC" --term "genero=RPG" --term "epoca=Años 90" --term "ano=1991" --term "desarrolladora=..." --term "saga=..."
+# 3) Crear borrador
+python3 .opencode/skills/publish-wordpress/scripts/wp_create_post.py \
+  --title "..." --slug "..." --content-file /tmp/post.html --excerpt "..." \
+  --status draft --categories <ID> --tags <id1,id2,...>
+# 4) Registrar en DB local (igual que en modo MCP)
+python3 memory/scripts/db_query.py add-post --wp-id POST_ID --title "..." --slug "..." --category-slug reviews
+python3 memory/scripts/db_query.py add-post-tags --wp-id POST_ID --tag-ids <id1,id2,...>
+```
+
+Inmediatamente después, sincroniza su estado local como borrador:
+
+```bash
+python3 memory/scripts/db_query.py update-post --wp-id POST_ID --status draft
+```
+
 ---
 
 ## Paso 7.1 — Verificación obligatoria de contenido
@@ -315,17 +341,27 @@ La skill se encarga de:
 python3 .opencode/skills/publish-wordpress/scripts/verify_post_content.py --post-id POST_ID --env .env
 ```
 
-Exit code 0 y `content_len > 0` → continuar al Paso 7.5.
+Exit code 0 y `content_len > 0` → continuar al Paso 7.2.
 
 **Si la verificación falla (`content_len = 0` o error):**
 
 1. Marcar el paso como **error** en el log de ejecución.
-2. **No continuar** con el Paso 7.5 (schema) ni el Paso 8 (memoria) — el post no debe quedar registrado como publicado.
-3. Si la idea venía de la cola, revertir su estado:
-   ```bash
-   python3 memory/scripts/db_query.py update-idea-state --id IDEA_ID --state pendiente
-   ```
-4. Informar al usuario: el post existe en WordPress pero quedó vacío; la reinyección debe hacerse desde Linux/WSL.
+2. **No continuar** con los pasos siguientes — el post debe permanecer como borrador y no registrarse como publicado.
+3. Si la idea venía de la cola, mantenerla en `en_uso` para que pueda reanudarse sin crear un post duplicado.
+4. Informar al usuario: el borrador existe en WordPress pero quedó vacío; la reinyección debe hacerse desde Linux/WSL.
+
+---
+
+## Paso 7.2 — Internal linking obligatorio
+
+El borrador ya tiene ID y tags locales. Carga la skill `link-related-posts` en **modo obligatorio de `/create-post`** y procésalo antes de solicitar autorización de publicación.
+
+- La skill busca candidatos por tags y puntuación; verifica que cada destino siga con estado `publish` en WordPress antes de usarlo.
+- Debe insertar dos enlaces salientes a destinos distintos, positivos y públicos, respetando `.opencode/skills/link-related-posts/reference/internal-links-insertion.md` y el máximo de dos enlaces internos por post.
+- Tras `wp_update_post`, vuelve a leer el contenido desde WordPress y comprueba que aparecen ambas URLs destino. Solo entonces registra los enlaces con `db_query.py add-link` y confirma las dos filas con `db_query.py get-links --wp-id POST_ID`.
+- Si no encuentra dos destinos válidos, falla la actualización, no puede verificar el HTML o no consigue registrar ambos enlaces, **detén el flujo sin publicar**. Mantén `draft`, informa qué falló y deja la idea en `en_uso` para poder reanudarla sin duplicar el post.
+
+> **Modo REST:** la lectura del contenido ya usa REST (`manage-internal-links.py get-post-content`). Para escribir el HTML con los enlaces, si el preflight fue `"rest"`, usa `python3 .opencode/skills/publish-wordpress/scripts/wp_update_post.py --id POST_ID --content-file /tmp/post.html` en lugar de `wp_update_post`.
 
 ---
 
@@ -333,11 +369,11 @@ Exit code 0 y `content_len > 0` → continuar al Paso 7.5.
 
 **Solo para posts de tipo Review o Historia sobre un juego concreto. Omitir para Listas y rankings.**
 
-Este paso es **no bloqueante**: si falla, continúa al Paso 8 y reporta el error al final.
+En este flujo el schema es una condición para publicar Review e Historia sobre un juego concreto. Si falla, el post permanece como borrador; informa del error para corregirlo antes de reintentar. Para Listas o rankings se omite.
 
 Carga la skill `set-videogame-schema` y ejecútala con los datos disponibles:
 
-- `post_id` → ID devuelto por WordPress al publicar (Paso 7)
+- `post_id` → ID devuelto por WordPress al crear el borrador (Paso 7)
 - `name` → game_data.name (del Paso 4.5)
 - `description` → excerpt (del Paso 4)
 - `system` → game_data.system, separados por coma (del Paso 4.5)
@@ -345,8 +381,38 @@ Carga la skill `set-videogame-schema` y ejecútala con los datos disponibles:
 - `author_name` → game_data.developer (del Paso 4.5)
 - `publisher` → game_data.publisher (del Paso 4.5; usar el mismo valor que author_name si coincide)
 - `image` → URL de la imagen de portada subida en el Paso 7
-- `url` → URL pública del post devuelta por WordPress
+- `url` → URL canónica prevista, construida con el dominio y el slug del borrador
 - `rating` → Solo si el post es una Review; omitir en otros tipos
+
+---
+
+## Paso 7.8 — Validación final, revisión y publicación
+
+Antes de cambiar el estado del post, confirma todos los puntos aplicables:
+
+- Excerpt/meta descripción de 150-160 caracteres y con la keyword principal.
+- Imagen destacada asignada y `featured_media` distinto de cero.
+- Imágenes de contenido: Review, 3 screenshots; Historia, 1 screenshot y 1 concepto; Lista, screenshots de los 3-5 juegos destacados. Si no se cumple, dejar en borrador e informar qué recurso falta.
+- Longitud dentro del rango del tipo: Review 1000-1500, Historia 800-1200, Lista 600-900 palabras.
+- Ángulo editorial propio, no una descripción oficial reformulada.
+- Al menos 2 enlaces internos contextuales insertados y registrados.
+- Schema VideoGame configurado para Review/Historia sobre un juego concreto.
+
+Muestra al usuario el contenido final del borrador y un resumen que incluya título, categoría, slug, excerpt, recuento de palabras, portada, imágenes de contenido, los dos posts enlazados y el estado del schema. Después pregunta:
+
+```text
+¿Publicamos este post? (sí / revisar / dejar como borrador)
+```
+
+- **revisar** → conserva el post como borrador, pregunta qué cambiar y vuelve al paso aplicable; repite las verificaciones antes de pedir confirmación otra vez.
+- **dejar como borrador** → no publiques; conserva el estado local `draft` y la idea en `en_uso`.
+- **sí** → solo si se cumplen todos los puntos aplicables, publica:
+
+  1. Cambiar el post a público con `wp_update_post(id: POST_ID, status: "publish")` (o, en modo REST, `python3 .opencode/skills/publish-wordpress/scripts/wp_update_post.py --id POST_ID --status publish`).
+  2. Sincronizar la memoria: `python3 memory/scripts/db_query.py update-post --wp-id POST_ID --status publish`.
+  3. Si falla cualquiera de las dos operaciones, informar del estado real en WordPress y en la DB; no reportar éxito hasta que ambos indiquen `publish`.
+
+Si falla algún requisito, no publiques aunque el usuario haya respondido sí: deja el post en `draft` y explica las tareas concretas pendientes.
 
 ---
 
@@ -360,7 +426,7 @@ Actualizar el estado de la idea a `publicado` y vincularla con el ID del post en
 python3 memory/scripts/db_query.py update-idea-state --id IDEA_ID --state publicado --wp-id POST_ID
 ```
 
-Donde `IDEA_ID` es el `id` de la idea obtenido en el Paso 0 y `POST_ID` es el ID devuelto por WordPress en el Paso 7.
+Donde `IDEA_ID` es el `id` de la idea obtenido en el Paso 0 y `POST_ID` es el ID devuelto por WordPress en el Paso 7. Solo actualizar la idea a `publicado` después de superar el Paso 7.8.
 
 **Si el post fue especificado directamente por el usuario:**
 
@@ -381,17 +447,17 @@ python3 memory/scripts/db_query.py update-idea-state --id IDEA_ID --state public
 ## Paso 9 — Reporte final
 
 ```
-✅ POST PUBLICADO
+✅ POST PUBLICADO / 📝 BORRADOR PENDIENTE
 ─────────────────────────────
-🔗 URL: [url del post]
+🔗 URL: [url del post o enlace de previsualización]
 📂 Categoría: [categoría]
 🏷️ Tags: [lista]
 🖼️ Imagen de portada: [fuente] o ⚠️ pendiente
 🖼️ Imágenes de contenido: X screenshots + Y conceptos
 🔍 Excerpt: [excerpt]
 🗂 Schema VideoGame: ✓ configurado (schema_id: [id]) o ⚠️ pendiente — [motivo]
-🕐 Publicado: [fecha y hora]
-💾 Memoria: idea #IDEA_ID actualizada a `publicado` (post_wp_id: POST_ID)
+🕐 Publicado: [fecha y hora] / Borrador: [fecha y hora]
+💾 Memoria: idea #IDEA_ID actualizada a `publicado` (post_wp_id: POST_ID) / sigue `en_uso` mientras el post permanezca como borrador
 ─────────────────────────────
 ```
 

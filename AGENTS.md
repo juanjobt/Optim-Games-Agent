@@ -43,14 +43,14 @@ opencode.json     # Configuración del agente y MCP
 | `generate-post-list` | Redactar un post de lista |
 | `find-game-image` | Localizar imagen de portada (SerpApi → RAWG) |
 | `upload-wordpress-image` | Subir imagen a la biblioteca de medios de WordPress |
-| `publish-wordpress` | Publicar un post via MCP (gestiona categorías y tags) |
-| `set-videogame-schema` | Inyectar schema VideoGame en un post publicado |
+| `publish-wordpress` | Publicar un post (MCP; fallback REST si el MCP no está disponible) |
+| `set-videogame-schema` | Inyectar schema VideoGame en un post |
 | `link-related-posts` | Gestionar internal links entre posts |
 | `search-game-candidates` | Buscar juegos candidatos para nuevas ideas |
 
 ## Herramientas WordPress MCP
 
-Disponibles via `wordpress-mcp-remote`:
+Disponibles via `wordpress-mcp-remote` (requieren un **JWT válido** en `opencode.json`):
 
 | Herramienta | Uso |
 |-------------|-----|
@@ -59,6 +59,8 @@ Disponibles via `wordpress-mcp-remote`:
 | `wp_upload_media` | Subir imágenes a la biblioteca de medios |
 | `wp_list_categories` / `wp_list_tags` | Obtener IDs de taxonomías |
 | `wp_add_category` / `wp_add_tag` | Crear si no existe |
+
+> **El JWT caduca** (~30 días). Si expira, los tools `wp_*` dejan de estar disponibles. El `/create-post` lo detecta en el **Paso 0.5 (preflight)** con `publish-wordpress/scripts/preflight_check.py` y, si no hay MCP, continúa en **modo REST** con los scripts `wp_resolve_terms.py` / `wp_create_post.py` / `wp_update_post.py` / `wp_get_post.py`. Renovar el token en **WP → Ajustes → WordPress MCP → Authentication Tokens**.
 
 ### Slugs de categorías
 

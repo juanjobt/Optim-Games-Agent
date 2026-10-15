@@ -4,7 +4,7 @@
 
 Antes de realizar **cualquier llamada a una API externa** (RAWG, Hugging Face, WordPress MCP, etc.), el agente DEBE:
 
-1. **Leer el archivo `.env`** ubicado en la raíz del proyecto (`/mnt/g/PROJECTS/_OPTIMBYTE/optim-games-agent/.env`)
+1. **Leer el archivo `.env`** ubicado en la raíz del proyecto (`.env`, ruta absoluta por defecto `/mnt/g/PROJECTS/_OPTIMBYTE/optim-pixel-agent/.env`)
 2. **Extraer los valores necesarios** del archivo:
    - `RAWG_API_KEY` → para búsquedas de portadas de juegos
    - `HF_TOKEN` → para generación de imágenes con IA
@@ -15,7 +15,7 @@ Antes de realizar **cualquier llamada a una API externa** (RAWG, Hugging Face, W
 | ❌ Error | ✅ Correcto |
 |----------|-------------|
 | Usar "demo" como API key | Usar el valor real de `RAWG_API_KEY` del `.env` |
-| Usar `key=RAWG_API_KEY` en la URL | Usar `key=744844ef430840ea86411672483d72a6` (valor real) |
+| Hardcodear la key en la URL/regla | Leerla del `.env` (nunca escribir el valor real en reglas, logs ni código) |
 | Continuar sin saber el valor | Detenerse y leer el `.env` primero |
 | Asumir que la key no existe | Verificar el archivo antes de concluir |
 
@@ -24,7 +24,7 @@ Antes de realizar **cualquier llamada a una API externa** (RAWG, Hugging Face, W
 ```
 1. Necesito hacer una llamada a RAWG API
 2. → Leo el archivo .env
-3. → Extraigo RAWG_API_KEY=744844ef430840ea86411672483d72a6
+3. → Extraigo RAWG_API_KEY (valor real)
 4. → Construyo la URL con la key real
 5. → Realizo la llamada
 ```
@@ -32,7 +32,7 @@ Antes de realizar **cualquier llamada a una API externa** (RAWG, Hugging Face, W
 ## Ubicación del Archivo
 
 ```
-/mnt/g/PROJECTS/_OPTIMBYTE/optim-games-agent/.env
+/mnt/g/PROJECTS/_OPTIMBYTE/optim-pixel-agent/.env
 ```
 
 Este archivo contiene las credenciales reales del proyecto. El agente debe tratarlo como la fuente de verdad para cualquier autenticación.

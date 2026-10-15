@@ -4,13 +4,13 @@ description: Publica o actualiza posts completos en WordPress dado un título y 
 compatibility: Requiere WordPress MCP configurado, acceso a internet y credenciales en .env
 metadata:
   author: optimbyte
-  version: "3.0"
-  allowed-tools: wp_add_post wp_update_post wp_get_post wp_posts_search wp_list_categories wp_list_tags wp_add_category wp_add_tag
+  version: "3.1"
+  allowed-tools: bash wp_add_post wp_update_post wp_get_post wp_posts_search wp_list_categories wp_list_tags wp_add_category wp_add_tag
 ---
 
 # Skill: Publicar en WordPress
 
-Flujo completo de publicación de un post en WordPress via MCP:
+Flujo completo de publicación de un post en WordPress:
 1. Resolver la categoría a partir del tipo de post
 2. Generar y validar tags a partir de game_data contra la base de datos local
 3. Crear el post con categoría, tags y contenido
@@ -18,6 +18,39 @@ Flujo completo de publicación de un post en WordPress via MCP:
 5. Registrar el post y sus tags en la base de datos local
 
 **Fuente de verdad para tags:** `memory/blog.db` (tabla `tags`). Todas las consultas de tags se hacen mediante `memory/scripts/db_query.py`.
+
+---
+
+## Modo de ejecución: MCP (principal) o REST (fallback)
+
+Esta skill puede ejecutarse por **dos vías**. Elegir en función del resultado del **preflight** (Paso 0.5 de `/create-post`):
+
+| Modo | Cuándo | Herramienta |
+|------|--------|-------------|
+| **MCP** (principal) | Si los tools `wp_*` están cargados en la sesión (JWT válido) | tools MCP `wp_add_post`, `wp_update_post`, etc. |
+| **REST** (fallback) | Si los tools `wp_*` NO están disponibles (p. ej. JWT MCP caducado) | scripts Python de `scripts/` (abajo) |
+
+**Comprobar siempre antes de empezar:**
+
+```bash
+python3 .opencode/skills/publish-wordpress/scripts/preflight_check.py --env .env
+```
+
+Devuelve `recommended_mode: "mcp" | "rest"`. Si es `"rest"` o si los tools `wp_*` no aparecen en la sesión, usar el **fallback REST** con normalidad: el flujo (categorías → tags → post → portada → DB local) es el mismo.
+
+### Scripts del fallback REST
+
+Equivalen 1:1 a las operaciones MCP de publicación:
+
+| Necesidad | MCP | Fallback REST |
+|-----------|-----|---------------|
+| Resolver categoría del tipo | `wp_list_categories` / `wp_add_category` | `wp_resolve_terms.py category --type review\|historia\|lista` |
+| Resolver/crear tags + `tag_group` + registro en DB | `wp_list_tags` / `wp_add_tag` + `add-tag` | `wp_resolve_terms.py tags --term "sistema=PC" ...` |
+| Crear post | `wp_add_post` | `wp_create_post.py --title ... --slug ... --content-file ... --excerpt ... --status draft --categories 2 --tags 41,6` |
+| Actualizar post (status/contenido/etc.) | `wp_update_post` | `wp_update_post.py --id N --status publish` |
+| Leer post (verificar estado/featured/tags) | `wp_get_post` | `wp_get_post.py --id N` |
+
+> Los scripts REST serializan el body JSON en UTF-8 limpio (seguro para HTML con acentos), registran los tags nuevos en la DB local y asignan `tag_group` automáticamente. El registro del post (`add-post` / `add-post-tags`) se sigue haciendo con `db_query.py`, igual que en el modo MCP.
 
 ---
 
@@ -42,10 +75,10 @@ Obligatorios:
     saga: "Saga Chrono"       // si aplica
   }
   ```
-- `status` — `"publish"` o `"draft"`
+- `status` — estado final solicitado: `"publish"` o `"draft"`. Los posts siempre se crean inicialmente como borrador; conserva este valor como `desired_status`.
 
 Opcionales:
-- `image_url` — URL pública de la imagen de portada (obtenida previamente con find-game-image). Si es `null`, se publica sin imagen.
+- `image_url` — URL pública de la imagen de portada (obtenida previamente con find-game-image). Si es `null`, el post permanece en borrador y no se puede promover a público.
 - `content_images` — Array de imágenes de contenido ya subidas a WordPress (screenshots, conceptos). Cada elemento:
   ```
   {
@@ -86,6 +119,8 @@ Ejecutar con `python3 memory/scripts/db_query.py`:
 ---
 
 ## Paso 1 — Resolver ID de categoría
+
+Antes de llamar a WordPress, validar que `excerpt` tiene entre 150 y 160 caracteres (inclusive). Si queda fuera de rango, corregirlo antes de crear el post.
 
 ```
 wp_list_categories()
@@ -288,7 +323,13 @@ Anotar:
 
 ---
 
-## Paso 3 — Publicar el post
+## Paso 3 — Crear el post como borrador
+
+En el flujo `/create-post`, `status` debe ser `"draft"`. No crear posts públicos desde ese comando: internal linking, imágenes y schema se verifican después, y solo el Paso 7.8 de `create-post` cambia el estado a `publish`.
+
+Copiar `status` a `desired_status`, pero crear el post siempre con `status: "draft"`. Así se puede asignar y verificar la portada antes de exponerlo públicamente.
+
+Si se invoca esta skill de forma independiente con `desired_status: "publish"`, solo se podrá promover el borrador si el usuario confirma que ya se han satisfecho las comprobaciones editoriales y SEO (incluidos dos enlaces internos y schema cuando aplique).
 
 ```
 wp_add_post(
@@ -296,14 +337,14 @@ wp_add_post(
   slug: "slug-del-post",
   content: "<p>Contenido completo en HTML...</p>",
   excerpt: "Extracto de 150-160 caracteres",
-  status: "publish",
+  status: "draft",
   categories: [ID_categoria],
   tags: [ID_tag_1, ID_tag_2, ...]
   # NOTA: No incluir featured_media aquí — se asigna en Paso 4
 )
 ```
 
-Anotar el `post_id` devuelto y la `URL` pública del post.
+Anotar el `post_id` devuelto y el permalink/previsualización del borrador.
 
 ---
 
@@ -333,15 +374,25 @@ El script consulta `GET /wp-json/wp/v2/posts/{id}?context=edit` y comprueba que 
 3. Verifica que `featured_media` tiene valor no-zero en el post
 
 **Si `image_url` es null:**
-- Continúa sin imagen y anota la advertencia en el reporte final
+- Mantén el post como borrador. No se puede promover a `publish` hasta que tenga imagen destacada.
 
 **Importante:** La skill `upload-wordpress-image` ejecuta un script Python que gestiona la descarga, subida multipart y asignación de featured image. No usar herramientas MCP para la subida de imagen.
+
+Después de subir la portada, verificar con `wp_get_post(id: POST_ID)` que `featured_media` es distinto de cero. Si falta o la asignación falla, mantener el borrador y reportar el problema.
+
+### 4.1 — Aplicar el estado final solicitado
+
+- Si `desired_status` es `"draft"`, mantener el borrador.
+- Si `desired_status` es `"publish"`, confirmar que la portada está asignada y que las comprobaciones editoriales/SEO previas están completas. Entonces cambiar el estado con `wp_update_post(id: POST_ID, status: "publish")`.
+- Si no se cumplen las condiciones, mantener `draft` e informar de los pendientes.
 
 ---
 
 ## Paso 5 — Registrar en la base de datos local
 
-Tras publicar el post en WordPress, registrar tanto el post como sus tags en la DB local para mantener sincronizada la memoria. Esto es esencial para que `find-related` (internal links) funcione correctamente con los posts nuevos.
+Tras crear el post en WordPress, registrar tanto el post como sus tags en la DB local para mantener sincronizada la memoria. Esto es esencial para que `find-related` (internal links) funcione correctamente con los posts nuevos.
+
+Como `add-post` crea inicialmente el registro local con estado `publish`, sincronizarlo inmediatamente con el estado real de WordPress mediante `python3 memory/scripts/db_query.py update-post --wp-id POST_ID --status STATUS_REAL` (`draft` o `publish`).
 
 ### 5.1 — Registrar el post
 
@@ -370,20 +421,21 @@ Este paso es **obligatorio** — sin él, el post no tendrá tags en la DB local
 ## Paso 6 — Reporte final
 
 ```
-✅ URL del post publicado
+Estado: [publish / draft]
+🔗 URL o previsualización del post
 📂 Categoría asignada
 🏷️ Tags: [lista] (X desde DB local + Y nuevos creados y registrados)
 ✅ Validación de tags: completada vs memory/blog.db
 ✅ Verificación de contenido: content_len = X bytes (Paso 3.5)
-🖼️ Imagen de portada: asignada correctamente / ⚠️ pendiente (sin URL)
+🖼️ Imagen de portada: asignada correctamente / ⚠️ pendiente (el post permanece como borrador)
 🖼️ Imágenes de contenido: X screenshots + Y conceptos / ⚠️ pendientes
 📝 Post registrado en DB local: sí (wp_id=X, tags=Y)
-🕐 Fecha y hora de publicación
+🕐 Fecha y hora de publicación / creación del borrador
 ```
 
 **Verificación de tags:** Incluir la tabla de mapeo tag → ID en WordPress para confirmar que los IDs son correctos. Si algún ID no corresponde al tag esperado, detener la publicación y corregir.
 
-Si la imagen de portada quedó pendiente, indica en el reporte que el usuario puede añadirla manualmente desde el panel de WordPress.
+Si la imagen de portada quedó pendiente, indica en el reporte que el usuario puede añadirla manualmente desde el panel de WordPress y que el post permanece como borrador.
 
 ---
 
@@ -397,6 +449,6 @@ Si la imagen de portada quedó pendiente, indica en el reporte que el usuario pu
 
 **Error al registrar post/Tags en DB local** — No bloquea la publicación del post en WordPress. Reportar el error y ejecutar `python3 memory/scripts/db_init.py sync-posts-wp` para resincronizar.
 
-**Token JWT expirado** — Duración máxima 24h. Regenerar en **Ajustes → WordPress MCP → Authentication Tokens** y actualizar `.env`.
+**Token JWT expirado** — Los tokens del plugin WordPress MCP caducan (en la práctica ~30 días desde su emisión; verificar el campo `exp` del JWT en `opencode.json`). Regenerar en **WP → Ajustes → WordPress MCP → Authentication Tokens** y actualizar el header `Authorization: Bearer ...` de `mcp.wordpress-mcp-remote` en `opencode.json`. Mientras el JWT no sea válido, **los tools `wp_*` no se cargan** → usar el fallback REST (ver sección "Modo de ejecución").
 
-**Herramienta no disponible** — Verificar que *Enable Create Tools* y *Enable Update Tools* están activos en **Ajustes → WordPress MCP → General Settings**.
+**Herramienta no disponible** — Si los tools `wp_*` no aparecen en la sesión: (1) ejecutar `preflight_check.py` para ver si el JWT está caducado; (2) verificar que *Enable Create Tools* y *Enable Update Tools* están activos en **Ajustes → WordPress MCP → General Settings**; (3) si el problema persiste, continuar en **modo REST** con los scripts de `scripts/` sin bloquear el flujo.

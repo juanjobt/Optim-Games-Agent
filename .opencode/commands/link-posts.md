@@ -3,7 +3,7 @@ description: Añade internal links a posts existentes que necesitan enlaces rela
 agent: content-marketer
 ---
 
-Añade internal links a posts existentes que no tienen suficientes enlaces salientes. Procesa N posts en lote usando la skill `link-related-posts`.
+Este comando es solo para mantenimiento de posts ya publicados que necesitan enlaces salientes. Procesa N posts en lote usando la skill `link-related-posts`. Los posts nuevos reciben sus enlaces dentro de `/create-post`; no hace falta ejecutar `/link-posts` para ellos.
 
 ## Parámetros
 

@@ -9,13 +9,14 @@ Esta regla define **cómo y dónde insertar enlaces internos** en el contenido H
 ## Cuándo se aplica
 
 - Acabas de publicar un post y quieres enlazarlo con contenido relacionado
+- Estás preparando un borrador en `/create-post` y necesitas insertar enlaces antes de publicarlo
 - Estás enriqueciendo un post existente con más enlaces internos
 
 ---
 
 ## Requisitos previos
 
-1. El **ID del post** a modificar
+1. El **ID del post** a modificar (puede ser un borrador aún no público)
 2. El **contenido HTML actual** del post
 3. Una **lista de posts relacionados** con título y URL
 
@@ -72,6 +73,10 @@ Seleccionar los 2 posts más relevantes de la lista de relacionados. Más de 2 e
 
 Si un post ya tiene un enlace a otro post, no crear otro enlace al mismo destino.
 
+### Regla 8: Enlazar solo contenido público
+
+Antes de insertar el enlace, comprobar que el destino existe en WordPress y su estado actual es `publish`. No enlazar borradores, privados, papelera ni URLs que respondan como inexistentes.
+
 ---
 
 ## Ejemplos
@@ -121,6 +126,7 @@ El post no menciona "Konami". Inserción en penúltimo párrafo:
 ## Checklist antes de publicar los cambios
 
 - [ ] El enlace no está en el primer párrafo
+- [ ] Cada destino está publicado y disponible en WordPress
 - [ ] El texto del enlace es el título del post o nombre del juego
 - [ ] No hay dos enlaces en el mismo párrafo
 - [ ] Se insertaron máximo 2 enlaces
